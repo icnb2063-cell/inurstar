@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🛸 관리자 — 우리 반 우주</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Gothic Neo',sans-serif;overflow-x:hidden}
+:root{--dark:#0D1580;--green:#00A651;--yellow:#FFC907;--red:#E8242B;--orange:#FF6B35;--purple:#8B2FC9;--lb:#00AEEF;--blue:#2638C4}
+.wrap{max-width:700px;margin:0 auto;padding-bottom:80px}
+/* HEADER */
+.admin-hdr{background:var(--dark);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+.admin-logo{font-size:18px;font-weight:900;color:var(--yellow);text-shadow:0 2px 0 #050840}
+.admin-date{font-size:12px;font-weight:800;color:#5060bb}
+/* NAV */
+.admin-nav{background:#111780;padding:10px 14px;display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:50;border-bottom:3px solid var(--dark)}
+.nav-tab{padding:8px 16px;border-radius:999px;border:3px solid var(--dark);font-size:13px;font-weight:900;cursor:pointer;font-family:inherit;transition:transform .12s,box-shadow .12s;box-shadow:0 3px 0 var(--dark);background:#fff;color:var(--dark)}
+.nav-tab:active{transform:translateY(2px);box-shadow:0 1px 0 var(--dark)}
+.nav-tab.active{background:var(--yellow);color:var(--dark);border-color:var(--dark)}
+/* PAGES */
+.page{display:none;padding:14px}.page.active{display:block}
+/* CARDS */
+.card{background:#fff;border:3px solid var(--dark);border-radius:20px;padding:14px 16px;margin-bottom:12px;box-shadow:0 5px 0 var(--dark)}
+.card-title{font-size:15px;font-weight:900;color:var(--dark);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.sec-title{font-size:20px;font-weight:900;color:var(--yellow);text-shadow:0 2px 0 #050840;margin:14px 0 4px}
+.sec-sub{font-size:13px;font-weight:800;color:#5060bb;margin-bottom:12px}
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat-box{background:#fff;border:3px solid var(--dark);border-radius:18px;padding:12px;text-align:center;box-shadow:0 4px 0 var(--dark)}
+.stat-num{font-size:28px;font-weight:900;color:var(--dark)}
+.stat-lbl{font-size:11px;font-weight:800;color:#888}
+/* TABLE */
+.s-table{width:100%;border-collapse:collapse}
+.s-table th{font-size:12px;font-weight:900;color:#888;padding:8px 10px;text-align:left;border-bottom:2px solid #eee}
+.s-table td{padding:10px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;vertical-align:middle}
+.s-table tr:last-child td{border-bottom:none}
+.s-chip{display:inline-flex;align-items:center;gap:6px}
+.s-dot{width:30px;height:30px;border-radius:50%;border:2px solid var(--dark);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900}
+.bar-sm{width:70px;height:6px;background:#eee;border-radius:999px;overflow:hidden;display:inline-block;vertical-align:middle;border:1.5px solid #ddd}
+.bar-sm-fill{height:100%;border-radius:999px}
+.tag{font-size:11px;border-radius:999px;padding:3px 10px;font-weight:900}
+.tag-ok{background:#e6fff0;color:var(--green);border:2px solid var(--green)}
+.tag-no{background:#f0f0f0;color:#aaa;border:2px solid #ddd}
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:999px;font-size:13px;font-weight:900;cursor:pointer;font-family:inherit;border:3px solid var(--dark);transition:transform .1s,box-shadow .1s;box-shadow:0 3px 0 var(--dark)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--dark)}
+.btn-primary{background:var(--yellow);color:var(--dark)}
+.btn-green{background:var(--green);color:#fff;border-color:#005028;box-shadow:0 3px 0 #005028}
+.btn-danger{background:var(--red);color:#fff;border-color:#8a0000;box-shadow:0 3px 0 #8a0000}
+.btn-ghost{background:#fff;color:var(--dark)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-full{width:100%;padding:12px;border-radius:999px;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;border:3px solid var(--dark);box-shadow:0 4px 0 var(--dark);transition:transform .12s,box-shadow .12s;margin-top:6px}
+.btn-full:active{transform:translateY(3px);box-shadow:0 1px 0 var(--dark)}
+/* MANAGE GRID */
+.manage-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sm-card{background:#fff;border:3px solid var(--dark);border-radius:18px;padding:12px;box-shadow:0 4px 0 var(--dark)}
+.sm-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.sm-name{font-size:14px;font-weight:900;color:var(--dark)}
+.sm-info{font-size:12px;font-weight:800;color:#888;margin-bottom:8px}
+.sm-acts{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
+.sm-hist{font-size:10px;color:#bbb;font-weight:700;max-height:50px;overflow-y:auto;line-height:1.6}
+/* SETTINGS */
+.setting-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.setting-lbl{font-size:13px;font-weight:800;color:#555;flex:1}
+.setting-input{width:56px;padding:5px 8px;border:3px solid var(--dark);border-radius:10px;font-size:13px;font-weight:900;text-align:center;font-family:inherit;background:#fffbe6}
+.rule-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.sec-items-editor{border:2px solid #eee;border-radius:12px;padding:10px;margin-bottom:8px;background:#fafafa}
+.sec-items-title{font-size:13px;font-weight:900;color:var(--dark);margin-bottom:8px}
+.item-row{display:flex;gap:6px;margin-bottom:5px}
+.item-input{flex:1;padding:6px 10px;border:2px solid #ddd;border-radius:10px;font-size:13px;font-weight:800;font-family:inherit;background:#fff}
+/* LOG */
+.log-filter-btn{padding:7px 16px;border-radius:999px;border:3px solid var(--dark);font-size:13px;font-weight:900;cursor:pointer;font-family:inherit;background:#fff;color:var(--dark);transition:transform .1s,box-shadow .1s;box-shadow:0 3px 0 var(--dark)}
+.log-filter-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--dark)}
+.log-filter-btn.active{background:var(--yellow);color:var(--dark)}
+.log-snap-card{background:#fff;border:3px solid var(--dark);border-radius:18px;padding:14px;margin-bottom:12px;box-shadow:0 4px 0 var(--dark)}
+.log-snap-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.log-snap-name{font-size:16px;font-weight:900;color:var(--dark);display:flex;align-items:center;gap:8px}
+.log-snap-meta{font-size:12px;font-weight:800;color:#888}
+.log-pct-pill{padding:4px 14px;border-radius:999px;font-size:13px;font-weight:900}
+.log-pct-ok{background:#e6fff0;color:var(--green);border:2px solid var(--green)}
+.log-pct-warn{background:#fff9e6;color:#b87000;border:2px solid var(--yellow)}
+.log-pct-low{background:#f5f5f5;color:#aaa;border:2px solid #ddd}
+.log-sections{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.log-sec{background:#fafafa;border:2px solid #eee;border-radius:12px;padding:10px}
+.log-sec-title{font-size:12px;font-weight:900;color:var(--dark);margin-bottom:7px}
+.log-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;margin-bottom:4px}
+.log-item:last-child{margin-bottom:0}
+.log-dot{width:14px;height:14px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0}
+.log-dot.on{background:var(--green);border-color:var(--green);color:#fff}
+.log-dot.off{background:#f0f0f0;border-color:#ddd;color:#ccc}
+.log-lbl-on{color:var(--green)}
+.log-lbl-off{color:#bbb;text-decoration:line-through}
+.log-empty{text-align:center;padding:30px;font-size:14px;font-weight:800;color:#6070bb}
+.log-del-btn{padding:3px 10px;border:2px solid #ddd;border-radius:999px;background:transparent;font-size:11px;font-weight:900;color:#bbb;cursor:pointer;font-family:inherit}
+.log-del-btn:hover{border-color:var(--red);color:var(--red)}
+.reset-box{border:3px solid var(--red);border-radius:18px;padding:14px;background:#fff5f5;margin-bottom:12px;box-shadow:0 4px 0 #8a0000}
+.reset-title{font-size:14px;font-weight:900;color:var(--red);margin-bottom:4px}
+.reset-desc{font-size:12px;font-weight:700;color:#c08080;margin-bottom:12px}
+/* COSMOS */
+.cosmos-outer{background:var(--dark);border:3px solid var(--yellow);border-radius:20px;padding:14px;box-shadow:0 6px 0 #050840;margin-bottom:12px}
+.cosmos-title{font-size:22px;font-weight:900;color:var(--yellow);text-align:center;text-shadow:0 3px 0 #050840;margin-bottom:3px}
+.cosmos-sub{font-size:13px;font-weight:800;color:#5060bb;text-align:center;margin-bottom:12px}
+.cosmos-cvs-wrap{border-radius:14px;overflow:hidden;border:3px solid #1a2080}
+.cosmos-legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.cl-chip{display:flex;align-items:center;gap:5px;background:#0d1260;border:2px solid #1a2080;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:900;color:#8090dd}
+.cl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+/* TOAST */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%)translateY(80px);padding:11px 24px;border-radius:999px;font-size:15px;font-weight:900;border:3px solid var(--dark);transition:transform .3s;white-space:nowrap;z-index:999;box-shadow:0 5px 0 var(--dark)}
+.toast.show{transform:translateX(-50%)translateY(0)}
+.toast-y{background:var(--yellow);color:var(--dark)}
+.toast-g{background:var(--green);color:#fff;border-color:#005028;box-shadow:0 5px 0 #005028}
+.toast-r{background:var(--red);color:#fff;border-color:#8a0000;box-shadow:0 5px 0 #8a0000}
+/* INDIV RESET */
+.indiv-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:2px solid #f0f0f0}
+.indiv-row:last-child{border-bottom:none}
+
+.lock-screen{position:fixed;inset:0;background:#1a1fe8;z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px}
+.lock-card{width:min(360px,100%);background:#fff;border:3px solid var(--dark);border-radius:22px;padding:22px;box-shadow:0 6px 0 var(--dark);text-align:center}
+.lock-title{font-size:22px;font-weight:900;color:var(--dark);margin-bottom:8px}.lock-desc{font-size:13px;font-weight:800;color:#777;margin-bottom:14px}
+.lock-input{width:100%;padding:12px 14px;border:3px solid var(--dark);border-radius:999px;font-size:18px;font-weight:900;text-align:center;font-family:inherit;background:#fffbe6;margin-bottom:10px}
+.status-pill{display:none;margin:10px 14px 0;background:#fff4f4;border:2px solid var(--red);border-radius:14px;padding:8px 10px;font-size:12px;font-weight:800;color:var(--red);line-height:1.4}
+.status-pill.show{display:block}
+</style>
+</head>
+<body>
+<div class="lock-screen" id="lockScreen"><div class="lock-card"><div class="lock-title">🔐 관리자 접속</div><div class="lock-desc">비밀번호를 입력해 주세요.</div><input class="lock-input" id="adminPw" type="password" inputmode="numeric" placeholder="비밀번호" onkeydown="if(event.key==='Enter')checkAdminPw()"><button class="btn btn-primary" onclick="checkAdminPw()">관리자 페이지 열기</button></div></div>
+<div class="status-pill" id="serverStatus"></div>
+<div class="toast toast-y" id="toast"></div>
+<div class="wrap">
+  <div class="admin-hdr">
+    <div class="admin-logo">🛸 관리자 페이지</div>
+    <div class="admin-date" id="adminDate"></div>
+  </div>
+  <div class="admin-nav">
+    <button class="nav-tab active" onclick="sw('ov')">📊 전체 현황</button>
+    <button class="nav-tab" onclick="sw('cosmos')">🌌 우리 반 우주</button>
+    <button class="nav-tab" onclick="sw('manage')">👤 학생 관리</button>
+    <button class="nav-tab" onclick="sw('log')">📋 활동 기록</button>
+    <button class="nav-tab" onclick="sw('settings')">⚙ 설정</button>
+    <button class="nav-tab" onclick="sw('reset')">🔄 초기화</button>
+  </div>
+
+  <div class="page active" id="pg-ov">
+    <div class="sec-title">📊 전체 현황</div>
+    <div class="sec-sub" id="ovDate"></div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="card" style="padding:.75rem;overflow-x:auto">
+      <table class="s-table" id="sTable"></table>
+    </div>
+  </div>
+
+  <div class="page" id="pg-cosmos">
+    <div class="sec-title">🌌 우리 반의 우주</div>
+    <div class="cosmos-outer">
+      <div class="cosmos-title">🌌 우리 반의 우주</div>
+      <div class="cosmos-sub" id="cosmosTotal"></div>
+      <div class="cosmos-cvs-wrap"><canvas id="cosmosC" width="620" height="360" style="width:100%;display:block"></canvas></div>
+      <div class="cosmos-legend" id="cosmosLegend"></div>
+    </div>
+  </div>
+
+  <div class="page" id="pg-manage">
+    <div class="sec-title">👤 학생 관리</div>
+    <div class="sec-sub">개별 학생의 조각·별·기록을 관리해요</div>
+    <div class="card">
+      <div class="card-title">➕ 학생 추가</div>
+      <div style="display:flex;gap:8px">
+        <input id="newName" placeholder="이름 입력" style="flex:1;padding:9px 13px;border:3px solid var(--dark);border-radius:999px;font-size:14px;font-weight:800;font-family:inherit;background:#fffbe6"/>
+        <button class="btn btn-primary" onclick="addStudent()">추가!</button>
+      </div>
+    </div>
+    <div class="manage-grid" id="manageGrid"></div>
+  </div>
+
+  <div class="page" id="pg-settings">
+    <div class="sec-title">⚙ 설정</div>
+    <div class="sec-sub">체크리스트 항목과 보상 기준을 설정해요</div>
+    <div class="card">
+      <div class="card-title">🧩 우주선 완성 조각 수</div>
+      <div class="setting-row">
+        <span class="setting-lbl">총 몇 조각이 모여야 별 1개를 얻나요?</span>
+        <input class="setting-input" type="number" id="setTotal" min="5" max="200" value="50"/>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">⭐ 달성률별 조각 지급 기준</div>
+      <div id="ruleRows"></div>
+      <button class="btn btn-ghost btn-sm" onclick="addRule()" style="margin-top:8px">+ 구간 추가</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 체크리스트 활동 항목</div>
+      <div id="sectionEditor"></div>
+    </div>
+    <button class="btn-full btn-primary" onclick="saveSettings()">💾 저장하기!</button>
+  </div>
+
+  <div class="page" id="pg-log">
+    <div class="sec-title">📋 활동 기록</div>
+    <div class="sec-sub">학생이 저장한 체크리스트 활동 기록이에요</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title">🔍 학생 선택</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap" id="logStudentFilter"></div>
+    </div>
+    <div id="logContent"></div>
+  </div>
+
+  <div class="page" id="pg-reset">
+    <div class="sec-title">🔄 초기화</div>
+    <div class="sec-sub">⚠ 신중하게 사용해 주세요. 되돌릴 수 없어요!</div>
+    <div class="reset-box">
+      <div class="reset-title">오늘 체크리스트 전체 초기화</div>
+      <div class="reset-desc">모든 학생의 오늘 체크 내역을 삭제해요. 조각·별은 유지돼요.</div>
+      <button class="btn btn-danger" onclick="resetTodayAll()">오늘 체크 초기화</button>
+    </div>
+    <div class="reset-box">
+      <div class="reset-title">우주선 조각 전체 초기화</div>
+      <div class="reset-desc">모든 학생의 조각을 0으로 되돌려요. 별과 기록은 유지돼요.</div>
+      <button class="btn btn-danger" onclick="resetPiecesAll()">조각 전체 초기화</button>
+    </div>
+    <div class="reset-box">
+      <div class="reset-title">별 전체 초기화</div>
+      <div class="reset-desc">모든 학생의 별 개수와 조각을 0으로 되돌려요. 기록은 유지돼요.</div>
+      <button class="btn btn-danger" onclick="resetStarsAll()">별 전체 초기화</button>
+    </div>
+    <div class="reset-box">
+      <div class="reset-title">⚠ 완전 초기화</div>
+      <div class="reset-desc">모든 학생의 조각·별·기록·체크를 완전히 초기화해요. 학생 명단과 설정은 유지돼요.</div>
+      <button class="btn btn-danger" onclick="resetAll()">완전 초기화</button>
+    </div>
+    <div class="card">
+      <div class="card-title">개별 학생 초기화</div>
+      <div id="indivReset"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE=''; // Worker를 Pages와 같은 프로젝트에 연결하면 그대로 두세요. 별도 Worker URL을 쓰면 여기에 입력하세요.
+function defaults(){return{totalPieces:50,rules:[{min:70,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:[
+  {id:'morning',tab:'🌤 등교길',icon:'🌤',iconBg:'#FFF9E6',title:'등교길',sub:'학교 가기 전, 가는 길',items:['활동 1','활동 2','활동 3','활동 4']},
+  {id:'school',tab:'🏫 학교',icon:'🏫',iconBg:'#E6F0FF',title:'학교 생활',sub:'수업, 쉬는 시간, 점심',items:['활동 1','활동 2','활동 3','활동 4','활동 5']},
+  {id:'afternoon',tab:'🌇 하교길',icon:'🌇',iconBg:'#FFF0E6',title:'하교길',sub:'집으로 돌아오는 길',items:['활동 1','활동 2','활동 3']},
+  {id:'home',tab:'🏠 집에서',icon:'🏠',iconBg:'#E6FFE6',title:'집에서',sub:'집에 온 후 저녁까지',items:['활동 1','활동 2','활동 3','활동 4','활동 5']}
+],students:[]}}
+let D=defaults();
+let isSaving=false;
+function seedStudents(){if(D.students.length===0){['김민준','이서연','박지호','최수아','정현우','강나은','윤도현','임하린','송재원','오채은','한승민','류지아','신동현','백서현','문준혁','홍예린','조민재','권서준','노지현','엄태양','방다인'].forEach((n,i)=>D.students.push({id:i+1,name:n,pieces:0,stars:0,history:[],snapshots:[],colorIdx:i%8,checks:{}}));}}
+function normalizeD(){
+  const base=defaults();
+  if(!D||typeof D!=='object')D=base;
+  if(!D.sections)D.sections=base.sections;if(!D.rules)D.rules=base.rules;if(!D.totalPieces)D.totalPieces=50;if(!D.students)D.students=[];
+  D.students.forEach((s,i)=>{if(!s.id)s.id=i+1;if(!s.history)s.history=[];if(!s.snapshots)s.snapshots=[];if(!s.checks)s.checks={};if(s.colorIdx===undefined)s.colorIdx=i%8;if(s.pieces===undefined)s.pieces=0;if(s.stars===undefined)s.stars=0;});
+}
+function todayLocalKey(){const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`;}
+function setServerStatus(msg){const el=document.getElementById('serverStatus');if(!el)return;if(msg){el.textContent=msg;el.classList.add('show');}else{el.textContent='';el.classList.remove('show');}}
+function shortErr(text){try{const j=JSON.parse(text);return j.fix||j.error||text}catch(_){return String(text).slice(0,160)}}
+async function apiFetch(path,options={}){
+  const res=await fetch(API_BASE+path,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
+  if(!res.ok){const t=await res.text();throw new Error(shortErr(t));}
+  return res.json();
+}
+async function loadRemote(){
+  try{const data=await apiFetch('/api/data');D=data&&data.state?data.state:data;normalizeD();seedStudents();setServerStatus('');}
+  catch(e){console.error(e);normalizeD();seedStudents();setServerStatus('서버 연결 실패: Cloudflare D1 바인딩(DB) 또는 Functions 배포를 확인해 주세요. 현재는 임시 화면입니다.');toast('서버 연결 실패: 설정 확인 필요','r');}
+}
+function saveD(){
+  isSaving=true;
+  return apiFetch('/api/data',{method:'POST',body:JSON.stringify(D)})
+    .then(()=>setServerStatus(''))
+    .catch(e=>{console.error(e);setServerStatus('저장 실패: '+e.message);toast('저장 실패: Worker/D1 설정 확인','r');})
+    .finally(()=>{isSaving=false;});
+}
+function checkAdminPw(){
+  const v=(document.getElementById('adminPw')||{}).value||'';
+  if(v==='6435'){sessionStorage.setItem('admin_ok','1');document.getElementById('lockScreen').style.display='none';initApp();}
+  else toast('비밀번호가 맞지 않아요','r');
+}
+
+const CC=[{top:'#8B2FC9',av:'#EEE8FF',ac:'#8B2FC9'},{top:'#00A651',av:'#E6FFE6',ac:'#00A651'},{top:'#E8242B',av:'#FFE6E6',ac:'#E8242B'},{top:'#2638C4',av:'#E6EEFF',ac:'#2638C4'},{top:'#FF6B35',av:'#FFF0E6',ac:'#FF6B35'},{top:'#00AEEF',av:'#E6F8FF',ac:'#007ab0'},{top:'#FFC907',av:'#FFF9E6',ac:'#8B6000'},{top:'#E8242B',av:'#FFE6E6',ac:'#E8242B'}];
+const SC=['#8B2FC9','#00A651','#E8242B','#2638C4','#FF6B35','#00AEEF','#FFC907','#E8242B'];
+const todayKey=todayLocalKey();
+document.getElementById('adminDate').textContent=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+document.getElementById('ovDate').textContent=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+
+function toast(msg,type='y'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast toast-${type} show`;setTimeout(()=>t.classList.remove('show'),2600)}
+async function sw(id){await loadRemote();document.querySelectorAll('.nav-tab').forEach((b,i)=>b.classList.toggle('active',['ov','cosmos','manage','log','settings','reset'][i]===id));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('pg-'+id).classList.add('active');if(id==='ov')renderOv();if(id==='cosmos')renderCosmos();if(id==='manage')renderManage();if(id==='log')renderLog();if(id==='settings')renderSettings();if(id==='reset')renderReset();}
+
+let logFilterId=null;
+function renderLog(){
+  // 필터 버튼
+  const filter=document.getElementById('logStudentFilter');
+  filter.innerHTML=`<button class="log-filter-btn${logFilterId===null?' active':''}" onclick="setLogFilter(null)">전체</button>`+
+    D.students.filter(s=>(s.snapshots||[]).length>0).map(s=>`<button class="log-filter-btn${logFilterId===s.id?' active':''}" onclick="setLogFilter(${s.id})">${s.name}</button>`).join('');
+  // 기록 카드
+  const content=document.getElementById('logContent');
+  const targets=logFilterId===null?D.students:D.students.filter(s=>s.id===logFilterId);
+  // 전체 스냅샷을 최신순 정렬
+  let allSnaps=[];
+  targets.forEach(s=>{(s.snapshots||[]).forEach(snap=>allSnaps.push({s,snap}))});
+  allSnaps.sort((a,b)=>b.snap.key.localeCompare(a.snap.key));
+  if(allSnaps.length===0){content.innerHTML=`<div class="log-empty">💾 저장된 활동 기록이 없어요<br><span style="font-size:12px;color:#4050aa">학생 화면에서 '오늘 활동 저장하기'를 누르면 여기에 나타나요</span></div>`;return;}
+  const cc_map=Object.fromEntries(D.students.map(s=>[s.id,CC[s.colorIdx%8]]));
+  content.innerHTML=allSnaps.map(({s,snap})=>{
+    const cc=cc_map[s.id];
+    const pctClass=snap.pct>=80?'log-pct-ok':snap.pct>=70?'log-pct-warn':'log-pct-low';
+    const secHTML=(snap.detail||[]).map(sec=>`
+      <div class="log-sec">
+        <div class="log-sec-title">${sec.title}</div>
+        ${sec.items.map(it=>`<div class="log-item">
+          <div class="log-dot ${it.checked?'on':'off'}">${it.checked?'✓':''}</div>
+          <span class="${it.checked?'log-lbl-on':'log-lbl-off'}">${it.label}</span>
+        </div>`).join('')}
+      </div>`).join('');
+    return`<div class="log-snap-card">
+      <div class="log-snap-head">
+        <div class="log-snap-name">
+          <div class="s-dot" style="width:28px;height:28px;background:${cc.av};color:${cc.top};border-color:${cc.top}">${s.name.slice(0,2)}</div>
+          ${s.name}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="log-snap-meta">${snap.date} ${snap.time}</div>
+          <span class="log-pct-pill ${pctClass}">${snap.pct}% (${snap.done}/${snap.total})</span>
+          <button class="log-del-btn" onclick="deleteSnap(${s.id},'${snap.key}')">삭제</button>
+        </div>
+      </div>
+      <div class="log-sections">${secHTML}</div>
+    </div>`;
+  }).join('');
+}
+function setLogFilter(id){logFilterId=id;renderLog();}
+function deleteSnap(sid,key){
+  const s=D.students.find(x=>x.id===sid);if(!s||!s.snapshots)return;
+  if(!confirm('이 기록을 삭제할까요?'))return;
+  s.snapshots=s.snapshots.filter(x=>x.key!==key);
+  saveD();toast('기록이 삭제됐어요','r');renderLog();
+}
+
+function renderOv(){
+  const totalStars=D.students.reduce((a,s)=>a+s.stars,0),todayActive=D.students.filter(s=>(s.history||[]).some(h=>h.date===todayKey)).length;
+  document.getElementById('statsRow').innerHTML=`<div class="stat-box"><div class="stat-num" style="color:var(--blue)">${D.students.length}</div><div class="stat-lbl">👫 전체 학생</div></div><div class="stat-box"><div class="stat-num" style="color:var(--orange)">⭐${totalStars}</div><div class="stat-lbl">우리 반 총 별</div></div><div class="stat-box"><div class="stat-num" style="color:var(--green)">${todayActive}</div><div class="stat-lbl">오늘 조각 획득</div></div>`;
+  document.getElementById('sTable').innerHTML=`<thead><tr><th>이름</th><th>별</th><th>조각 진행</th><th>오늘</th><th>최근 달성률</th></tr></thead><tbody>${D.students.map(s=>{const cc=CC[s.colorIdx%8],pct=Math.min(Math.round(s.pieces/D.totalPieces*100),100),todayH=(s.history||[]).find(h=>h.date===todayKey),lastH=[...(s.history||[])].reverse().find(h=>!h.star);return`<tr><td><div class="s-chip"><div class="s-dot" style="background:${cc.av};color:${cc.top}">${s.name.slice(0,2)}</div>${s.name}</div></td><td style="color:var(--orange)">${s.stars>0?'⭐×'+s.stars:'—'}</td><td><div style="font-size:11px;font-weight:800;color:#888;margin-bottom:2px">${s.pieces}/${D.totalPieces}</div><div class="bar-sm"><div class="bar-sm-fill" style="width:${pct}%;background:${cc.top}"></div></div></td><td>${todayH?`<span class="tag tag-ok">+${todayH.pieces}조각</span>`:'<span class="tag tag-no">미획득</span>'}</td><td style="font-weight:900;color:${lastH&&lastH.pct>=80?'var(--green)':lastH&&lastH.pct>=70?'var(--orange)':'#aaa'}">${lastH?lastH.pct+'%':'—'}</td></tr>`;}).join('')}</tbody>`;
+}
+
+function renderCosmos(){
+  const total=D.students.reduce((a,s)=>a+s.stars,0);document.getElementById('cosmosTotal').textContent=`우리 반이 모은 별 총 ${total}개! ✨`;
+  const c=document.getElementById('cosmosC'),ctx=c.getContext('2d'),W=c.width,H=c.height;
+  ctx.fillStyle='#04040f';ctx.fillRect(0,0,W,H);
+  const grd=ctx.createRadialGradient(W/2,H/2,10,W/2,H/2,200);grd.addColorStop(0,'rgba(60,40,120,0.22)');grd.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<140;i++){const x=(i*173+7)%W,y=(i*97+13)%H,r=i%5===0?2:i%3===0?1.2:.6,op=.07+(i%7)*.04;ctx.fillStyle=`rgba(255,255,255,${op})`;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+  const pCols=['rgba(255,201,7,0.12)','rgba(0,166,81,0.1)','rgba(38,56,196,0.1)','rgba(139,47,201,0.1)'];
+  for(let i=0;i<35;i++){const x=(i*211+30)%W,y=(i*133+20)%H,r=(i%3+1)*3;ctx.fillStyle=pCols[i%4];ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}
+  const placed=[];
+  D.students.forEach((s,si)=>{if(!s.stars)return;const sc=SC[s.colorIdx%8];let px,py,tries=0;do{px=35+(si*89+tries*43)%550;py=30+(si*67+tries*31)%300;tries++}while(tries<50&&placed.some(p=>Math.hypot(p.x-px,p.y-py)<36));placed.push({x:px,y:py});const glow=ctx.createRadialGradient(px,py,2,px,py,20);glow.addColorStop(0,sc+'55');glow.addColorStop(1,sc+'00');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(px,py,20,0,Math.PI*2);ctx.fill();const R=13;ctx.save();ctx.translate(px,py);ctx.beginPath();for(let i=0;i<10;i++){const a=(i*36-90)*Math.PI/180,r=i%2===0?R:R*.4;i===0?ctx.moveTo(r*Math.cos(a),r*Math.sin(a)):ctx.lineTo(r*Math.cos(a),r*Math.sin(a))}ctx.closePath();ctx.fillStyle=sc;ctx.globalAlpha=.95;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText(String(s.stars),0,3);ctx.fillStyle=sc;ctx.font='bold 9px sans-serif';ctx.globalAlpha=.9;ctx.fillText(s.name,0,R+12);ctx.globalAlpha=1;ctx.restore();});
+  if(!total){ctx.fillStyle='#2a3060';ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.fillText('아직 별이 없어요!',W/2,H/2);ctx.fillStyle='#1a2050';ctx.font='bold 13px sans-serif';ctx.fillText('조각을 모아 첫 번째 별을 받아요!',W/2,H/2+22)}
+  document.getElementById('cosmosLegend').innerHTML=D.students.filter(s=>s.stars>0).map(s=>`<div class="cl-chip"><div class="cl-dot" style="background:${SC[s.colorIdx%8]}"></div>${s.name} ⭐${s.stars}</div>`).join('');
+}
+
+function renderManage(){document.getElementById('manageGrid').innerHTML=D.students.map(s=>{const cc=CC[s.colorIdx%8],pct=Math.min(Math.round(s.pieces/D.totalPieces*100),100);return`<div class="sm-card"><div class="sm-top"><div class="s-dot" style="background:${cc.av};color:${cc.top};border-color:${cc.top}">${s.name.slice(0,2)}</div><div class="sm-name">${s.name}</div></div><div id="rename-area-${s.id}" style="display:none;margin-bottom:8px"><div style="display:flex;gap:5px"><input id="rename-input-${s.id}" value="${s.name}" style="flex:1;padding:5px 10px;border:2.5px solid var(--dark);border-radius:999px;font-size:13px;font-weight:800;font-family:inherit;background:#fffbe6"/><button class="btn btn-green btn-sm" onclick="saveName(${s.id})">저장</button><button class="btn btn-ghost btn-sm" onclick="cancelRename(${s.id})">취소</button></div></div><div class="sm-info">별 ${s.stars}개 · 조각 ${s.pieces}/${D.totalPieces}</div><div class="bar-sm" style="width:100%;margin-bottom:8px"><div class="bar-sm-fill" style="width:${pct}%;background:${cc.top}"></div></div><div class="sm-acts"><button class="btn btn-ghost btn-sm" onclick="toggleRename(${s.id})">✏ 이름</button><button class="btn btn-ghost btn-sm" onclick="addPcsManual(${s.id})">+조각</button><button class="btn btn-ghost btn-sm" onclick="addStarManual(${s.id})">+별</button><button class="btn btn-danger btn-sm" onclick="resetStudent(${s.id})">초기화</button><button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">삭제</button></div><div class="sm-hist">${[...(s.history||[])].reverse().slice(0,3).map(h=>`${h.date} ${h.pct}% ${h.star?'⭐':'+'+h.pieces+'조각'}`).join(' / ')||'기록 없음'}</div></div>`;}).join('')}
+function toggleRename(id){const area=document.getElementById('rename-area-'+id);if(!area)return;const visible=area.style.display!=='none';area.style.display=visible?'none':'block';if(!visible){const inp=document.getElementById('rename-input-'+id);if(inp)inp.focus();}}
+function cancelRename(id){const area=document.getElementById('rename-area-'+id);if(area)area.style.display='none';}
+function saveName(id){const s=D.students.find(x=>x.id===id);if(!s)return;const inp=document.getElementById('rename-input-'+id);const newName=inp?inp.value.trim():'';if(!newName){toast('이름을 입력해 주세요!','r');return;}s.name=newName;saveD();toast('이름이 변경됐어요! ✏','g');renderManage();renderOv();}
+function addStudent(){const n=document.getElementById('newName').value.trim();if(!n)return;D.students.push({id:Date.now(),name:n,pieces:0,stars:0,history:[],colorIdx:D.students.length%8,checks:{}});saveD();document.getElementById('newName').value='';toast('추가됐어요! 🎉','g');renderManage();}
+function addPcsManual(id){const s=D.students.find(x=>x.id===id);if(!s)return;const n=parseInt(prompt('추가할 조각 수:'));if(isNaN(n)||n<=0)return;s.pieces=Math.min(s.pieces+n,D.totalPieces);if(s.pieces>=D.totalPieces){s.stars++;s.pieces=0;toast('⭐ 별 획득!','g');}else toast('조각 '+n+'개 추가!','g');saveD();renderManage();renderOv();}
+function addStarManual(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 학생에게 별 1개 추가?'))return;s.stars++;saveD();toast('⭐ 별 추가!','g');renderManage();}
+function resetStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 초기화?'))return;s.pieces=0;s.stars=0;s.history=[];s.snapshots=[];s.checks={};saveD();toast(s.name+' 초기화!','r');renderManage();}
+function deleteStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 학생을 명단에서 삭제할까요?'))return;D.students=D.students.filter(x=>x.id!==id);saveD();toast('학생이 삭제됐어요','r');renderManage();renderOv();}
+
+function renderSettings(){document.getElementById('setTotal').value=D.totalPieces;renderRuleRows();renderSectionEditor();}
+function renderRuleRows(){document.getElementById('ruleRows').innerHTML=D.rules.map((r,i)=>`<div class="rule-row"><input class="setting-input" type="number" value="${r.min}" onchange="D.rules[${i}].min=+this.value"/><span style="font-size:12px;font-weight:800;color:#aaa">~</span><input class="setting-input" type="number" value="${r.max}" onchange="D.rules[${i}].max=+this.value"/><span style="font-size:12px;font-weight:800;color:#aaa">%→</span><input class="setting-input" type="number" value="${r.pieces}" onchange="D.rules[${i}].pieces=+this.value"/><span style="font-size:12px;font-weight:800;color:#aaa">조각</span><button class="btn btn-danger btn-sm" onclick="D.rules.splice(${i},1);renderRuleRows()">×</button></div>`).join('')}
+function addRule(){D.rules.push({min:70,max:79,pieces:1});renderRuleRows();}
+function renderSectionEditor(){document.getElementById('sectionEditor').innerHTML=D.sections.map((sec,si)=>`<div class="sec-items-editor"><div class="sec-items-title">${sec.icon} ${sec.title}</div>${sec.items.map((item,ii)=>`<div class="item-row"><input class="item-input" value="${item}" onchange="D.sections[${si}].items[${ii}]=this.value"/><button class="btn btn-danger btn-sm" onclick="D.sections[${si}].items.splice(${ii},1);renderSectionEditor()">×</button></div>`).join('')}<button class="btn btn-ghost btn-sm" onclick="D.sections[${si}].items.push('새 활동');renderSectionEditor()">+ 활동 추가</button></div>`).join('')}
+function saveSettings(){D.totalPieces=+document.getElementById('setTotal').value;saveD();toast('저장됐어요! 💾','g');}
+
+function renderReset(){document.getElementById('indivReset').innerHTML=D.students.map(s=>{const cc=CC[s.colorIdx%8];return`<div class="indiv-row"><div class="s-dot" style="background:${cc.av};color:${cc.top};border-color:${cc.top}">${s.name.slice(0,2)}</div><span style="font-size:13px;font-weight:800;flex:1">${s.name}</span><span style="font-size:12px;font-weight:800;color:#aaa">별${s.stars}·조각${s.pieces}</span><button class="btn btn-danger btn-sm" onclick="resetStudentR(${s.id})">초기화</button></div>`;}).join('')}
+function resetStudentR(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 초기화?'))return;s.pieces=0;s.stars=0;s.history=[];s.snapshots=[];s.checks={};saveD();toast(s.name+' 초기화!','r');renderReset();}
+function resetTodayAll(){if(!confirm('모든 학생의 오늘 체크 내역을 삭제할까요?'))return;D.students.forEach(s=>{if(s.checks)delete s.checks[todayKey]});saveD();toast('오늘 체크 초기화!','r');}
+function resetPiecesAll(){if(!confirm('모든 학생의 조각을 0으로 초기화할까요?'))return;D.students.forEach(s=>s.pieces=0);saveD();toast('조각 전체 초기화!','r');renderOv();}
+function resetStarsAll(){if(!confirm('모든 학생의 별+조각을 0으로 초기화할까요?'))return;D.students.forEach(s=>{s.pieces=0;s.stars=0});saveD();toast('별+조각 초기화!','r');renderOv();}
+function resetAll(){if(!confirm('완전 초기화합니다. 모든 기록이 삭제돼요!'))return;if(!confirm('정말로요? 되돌릴 수 없어요!'))return;D.students.forEach(s=>{s.pieces=0;s.stars=0;s.history=[];s.snapshots=[];s.checks={}});saveD();toast('완전 초기화 완료!','r');renderOv();}
+
+function bootAdmin(){
+  if(sessionStorage.getItem('admin_ok')==='1'){
+    const lock=document.getElementById('lockScreen');if(lock)lock.style.display='none';
+    initApp();
+  }else{
+    const pw=document.getElementById('adminPw');if(pw)pw.focus();
+  }
+}
+bootAdmin();
+
+async function initApp(){await loadRemote();renderOv();}
+</script>
+</body>
+</html>
