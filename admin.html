@@ -411,13 +411,45 @@ function renderManage(){document.getElementById('manageGrid').innerHTML=D.studen
 <div class="counter-row"><span class="counter-label">조각</span><button class="btn btn-ghost btn-sm" onclick="changePieces(${s.id},-1)">−</button><span class="counter-value">${s.pieces}/${D.totalPieces}</span><button class="btn btn-ghost btn-sm" onclick="changePieces(${s.id},1)">+</button></div>
 <div class="counter-row"><span class="counter-label">별</span><button class="btn btn-ghost btn-sm" onclick="changeStars(${s.id},-1)">−</button><span class="counter-value">⭐ ${s.stars}</span><button class="btn btn-ghost btn-sm" onclick="changeStars(${s.id},1)">+</button></div>
 <div class="sm-info">오늘 활동 ${tc.done}/${tc.total}개 · ${tc.pct}%</div><div class="bar-sm" style="width:100%;margin-bottom:8px"><div class="bar-sm-fill" style="width:${pct}%;background:${cc.top}"></div></div>
-<div class="sm-acts"><button class="btn btn-ghost btn-sm" onclick="toggleRename(${s.id})">✏ 이름</button><button class="btn btn-primary btn-sm" onclick="toggleCheckEditor(${s.id})">✅ 활동 수정</button><button class="btn btn-danger btn-sm" onclick="resetTodayStudent(${s.id})">오늘 초기화</button><button class="btn btn-danger btn-sm" onclick="resetStudent(${s.id})">전체 초기화</button><button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">삭제</button></div>
+<div class="sm-acts"><button class="btn btn-ghost btn-sm" onclick="toggleRename(${s.id})">✏ 이름</button><button class="btn btn-primary btn-sm" onclick="toggleCheckEditor(${s.id})">✅ 오늘 활동</button><button class="btn btn-primary btn-sm" onclick="togglePastEditor(${s.id})">🗓 과거 활동</button><button class="btn btn-danger btn-sm" onclick="resetTodayStudent(${s.id})">오늘 초기화</button><button class="btn btn-danger btn-sm" onclick="resetStudent(${s.id})">전체 초기화</button><button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">삭제</button></div>
 <div id="check-edit-${s.id}" class="check-edit-box">${renderCheckEditorHTML(s)}</div>
+<div id="past-edit-${s.id}" class="check-edit-box">${renderPastEditorHTML(s)}</div>
 <div class="sm-hist">${[...(s.history||[])].reverse().slice(0,3).map(h=>`${h.date} ${h.pct}% ${h.star?'⭐':'+'+h.pieces+'조각'}`).join(' / ')||'기록 없음'}</div></div>`;}).join('')}
 function renderCheckEditorHTML(s){const t=todayChecks(s);return D.sections.map(sec=>`<div><div class="check-edit-title">${sec.icon} ${esc(sec.title)}</div>${sec.items.map((item,i)=>{const k=sec.id+'_'+i,ck=!!t[k];return`<label class="check-edit-item"><input type="checkbox" ${ck?'checked':''} onchange="setStudentCheck(${s.id},'${sec.id}',${i},this.checked)"><span>${esc(item)}</span></label>`}).join('')}</div>`).join('')+`<button class="btn btn-green btn-sm" style="margin-top:8px" onclick="saveCheckEditor(${s.id})">활동 저장</button>`;}
 function toggleCheckEditor(id){const box=document.getElementById('check-edit-'+id);if(!box)return;box.classList.toggle('open');}
 function setStudentCheck(id,secId,idx,checked){const s=D.students.find(x=>x.id===id);if(!s)return;const t=todayChecks(s);t[secId+'_'+idx]=!!checked;}
 function saveCheckEditor(id){const s=D.students.find(x=>x.id===id);if(!s)return;saveD();toast(s.name+' 활동 체크를 저장했어요','g');renderManage();renderOv();}
+
+function togglePastEditor(id){const box=document.getElementById('past-edit-'+id);if(!box)return;box.classList.toggle('open');}
+function snapSortDesc(a,b){return String(b.key||'').localeCompare(String(a.key||''));}
+function renderPastEditorHTML(s){
+  const snaps=[...(s.snapshots||[])].sort(snapSortDesc);
+  if(snaps.length===0)return `<div class="check-edit-title">🗓 과거 활동 기록</div><div class="sm-info">저장된 과거 활동 기록이 없어요.</div>`;
+  const first=snaps[0].key;
+  return `<div class="check-edit-title">🗓 과거 활동 기록 수정</div>
+    <select id="past-select-${s.id}" onchange="renderPastDateEditor(${s.id},this.value)" style="width:100%;padding:7px 10px;border:2.5px solid var(--dark);border-radius:12px;font-size:13px;font-weight:900;font-family:inherit;background:#fffbe6;margin-bottom:8px">
+      ${snaps.map(sn=>`<option value="${esc(sn.key)}">${esc(sn.date||sn.key)} ${esc(sn.time||'')} · ${sn.pct??0}% (${sn.done??0}/${sn.total??0})</option>`).join('')}
+    </select>
+    <div id="past-detail-${s.id}">${renderPastSnapDetail(s,first)}</div>`;
+}
+function renderPastDateEditor(id,key){const s=D.students.find(x=>x.id===id);const el=document.getElementById('past-detail-'+id);if(!s||!el)return;el.innerHTML=renderPastSnapDetail(s,key);}
+function renderPastSnapDetail(s,key){
+  const found=findSnap(s.id,key);if(!found)return `<div class="sm-info">기록을 찾을 수 없어요.</div>`;
+  const snap=found.snap;normalizeSnap(snap);
+  return `<div class="sm-info" style="margin-bottom:8px">${esc(snap.date)} ${esc(snap.time)} · ${snap.pct}% (${snap.done}/${snap.total})</div>`+
+    (snap.detail||[]).map((sec,si)=>`<div><div class="check-edit-title">${esc(sec.title)}</div>${(sec.items||[]).map((it,ii)=>`<label class="check-edit-item"><input type="checkbox" ${it.checked?'checked':''} onchange="setPastSnapItem(${s.id},'${esc(key)}',${si},${ii},this.checked)"><span>${esc(it.label)}</span></label>`).join('')}</div>`).join('')+
+    `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-green btn-sm" onclick="savePastSnapEdit(${s.id},'${esc(key)}')">과거 활동 저장</button><button class="btn btn-danger btn-sm" onclick="deletePastSnapManage(${s.id},'${esc(key)}')">이 기록 삭제</button></div>`;
+}
+function setPastSnapItem(id,key,secIdx,itemIdx,checked){
+  const found=findSnap(id,key);if(!found)return;
+  const snap=found.snap;
+  if(!snap.detail||!snap.detail[secIdx]||!snap.detail[secIdx].items||!snap.detail[secIdx].items[itemIdx])return;
+  snap.detail[secIdx].items[itemIdx].checked=!!checked;
+  normalizeSnap(snap);
+  const el=document.getElementById('past-detail-'+id);if(el)el.innerHTML=renderPastSnapDetail(found.s,key);
+}
+function savePastSnapEdit(id,key){const found=findSnap(id,key);if(!found)return;normalizeSnap(found.snap);saveD();toast(found.s.name+' 과거 활동을 저장했어요','g');renderManage();renderLog();renderOv();}
+function deletePastSnapManage(id,key){const s=D.students.find(x=>x.id===id);if(!s||!s.snapshots)return;if(!confirm('선택한 과거 활동 기록을 삭제할까요?'))return;s.snapshots=s.snapshots.filter(x=>x.key!==key);saveD();toast('과거 활동 기록을 삭제했어요','r');renderManage();renderLog();}
 function resetTodayStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 학생의 오늘 활동 체크를 초기화할까요?'))return;if(!s.checks)s.checks={};delete s.checks[todayKey];saveD();toast('오늘 활동 체크 초기화!','r');renderManage();renderOv();}
 function changePieces(id,delta){const s=D.students.find(x=>x.id===id);if(!s)return;s.pieces=Math.max(0,(s.pieces||0)+delta);if(s.pieces>=D.totalPieces){s.stars=(s.stars||0)+1;s.pieces=0;toast('조각이 모여 별 1개가 추가됐어요!','g');}else{toast(delta>0?'조각 1개 추가':'조각 1개 삭제',delta>0?'g':'r');}saveD();renderManage();renderOv();}
 function changeStars(id,delta){const s=D.students.find(x=>x.id===id);if(!s)return;s.stars=Math.max(0,(s.stars||0)+delta);saveD();toast(delta>0?'별 1개 추가':'별 1개 삭제',delta>0?'g':'r');renderManage();renderOv();}
