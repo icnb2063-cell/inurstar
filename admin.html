@@ -112,6 +112,21 @@ html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Goth
 .toast-y{background:var(--yellow);color:var(--dark)}
 .toast-g{background:var(--green);color:#fff;border-color:#005028;box-shadow:0 5px 0 #005028}
 .toast-r{background:var(--red);color:#fff;border-color:#8a0000;box-shadow:0 5px 0 #8a0000}
+
+/* ADMIN CHECK EDITOR */
+.check-edit-box{display:none;margin-top:10px;border:2px solid #eee;border-radius:14px;background:#fafafa;padding:10px}
+.check-edit-box.open{display:block}
+.check-edit-title{font-size:12px;font-weight:900;color:var(--dark);margin:8px 0 6px}
+.check-edit-item{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:#333;margin:4px 0}
+.check-edit-item input{width:17px;height:17px;accent-color:#00A651}
+.counter-row{display:flex;align-items:center;gap:6px;margin:7px 0;flex-wrap:wrap}
+.counter-label{font-size:12px;font-weight:900;color:#555;min-width:42px}
+.counter-value{font-size:13px;font-weight:900;color:var(--dark);background:#fffbe6;border:2px solid var(--dark);border-radius:999px;padding:4px 10px;min-width:48px;text-align:center}
+
+
+.log-edit-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;margin-bottom:5px;cursor:pointer;user-select:none}
+.log-edit-item input{width:16px;height:16px;accent-color:#00A651;flex-shrink:0}
+
 /* INDIV RESET */
 .indiv-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:2px solid #f0f0f0}
 .indiv-row:last-child{border-bottom:none}
@@ -289,47 +304,79 @@ async function sw(id){await loadRemote();document.querySelectorAll('.nav-tab').f
 
 let logFilterId=null;
 function renderLog(){
-  // 필터 버튼
   const filter=document.getElementById('logStudentFilter');
   filter.innerHTML=`<button class="log-filter-btn${logFilterId===null?' active':''}" onclick="setLogFilter(null)">전체</button>`+
-    D.students.filter(s=>(s.snapshots||[]).length>0).map(s=>`<button class="log-filter-btn${logFilterId===s.id?' active':''}" onclick="setLogFilter(${s.id})">${s.name}</button>`).join('');
-  // 기록 카드
+    D.students.filter(s=>(s.snapshots||[]).length>0).map(s=>`<button class="log-filter-btn${logFilterId===s.id?' active':''}" onclick="setLogFilter(${s.id})">${esc(s.name)}</button>`).join('');
+
   const content=document.getElementById('logContent');
   const targets=logFilterId===null?D.students:D.students.filter(s=>s.id===logFilterId);
-  // 전체 스냅샷을 최신순 정렬
   let allSnaps=[];
   targets.forEach(s=>{(s.snapshots||[]).forEach(snap=>allSnaps.push({s,snap}))});
   allSnaps.sort((a,b)=>b.snap.key.localeCompare(a.snap.key));
-  if(allSnaps.length===0){content.innerHTML=`<div class="log-empty">💾 저장된 활동 기록이 없어요<br><span style="font-size:12px;color:#4050aa">학생 화면에서 '오늘 활동 저장하기'를 누르면 여기에 나타나요</span></div>`;return;}
+
+  if(allSnaps.length===0){
+    content.innerHTML=`<div class="log-empty">💾 저장된 활동 기록이 없어요<br><span style="font-size:12px;color:#4050aa">학생 화면에서 '오늘 활동 저장하기'를 누르면 여기에 나타나요</span></div>`;
+    return;
+  }
+
   const cc_map=Object.fromEntries(D.students.map(s=>[s.id,CC[s.colorIdx%8]]));
   content.innerHTML=allSnaps.map(({s,snap})=>{
+    normalizeSnap(snap);
     const cc=cc_map[s.id];
     const pctClass=snap.pct>=80?'log-pct-ok':snap.pct>=70?'log-pct-warn':'log-pct-low';
-    const secHTML=(snap.detail||[]).map(sec=>`
+    const safeKey=esc(snap.key);
+    const secHTML=(snap.detail||[]).map((sec,si)=>`
       <div class="log-sec">
-        <div class="log-sec-title">${sec.title}</div>
-        ${sec.items.map(it=>`<div class="log-item">
-          <div class="log-dot ${it.checked?'on':'off'}">${it.checked?'✓':''}</div>
-          <span class="${it.checked?'log-lbl-on':'log-lbl-off'}">${it.label}</span>
-        </div>`).join('')}
+        <div class="log-sec-title">${esc(sec.title)}</div>
+        ${(sec.items||[]).map((it,ii)=>`<label class="log-edit-item">
+          <input type="checkbox" ${it.checked?'checked':''} onchange="toggleSnapItem(${s.id},'${safeKey}',${si},${ii},this.checked)">
+          <span class="log-dot ${it.checked?'on':'off'}">${it.checked?'✓':''}</span>
+          <span class="${it.checked?'log-lbl-on':'log-lbl-off'}">${esc(it.label)}</span>
+        </label>`).join('')}
       </div>`).join('');
     return`<div class="log-snap-card">
       <div class="log-snap-head">
         <div class="log-snap-name">
-          <div class="s-dot" style="width:28px;height:28px;background:${cc.av};color:${cc.top};border-color:${cc.top}">${s.name.slice(0,2)}</div>
-          ${s.name}
+          <div class="s-dot" style="width:28px;height:28px;background:${cc.av};color:${cc.top};border-color:${cc.top}">${esc(s.name.slice(0,2))}</div>
+          ${esc(s.name)}
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="log-snap-meta">${snap.date} ${snap.time}</div>
-          <span class="log-pct-pill ${pctClass}">${snap.pct}% (${snap.done}/${snap.total})</span>
-          <button class="log-del-btn" onclick="deleteSnap(${s.id},'${snap.key}')">삭제</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div class="log-snap-meta">${esc(snap.date)} ${esc(snap.time)}</div>
+          <span class="log-pct-pill ${pctClass}" id="snap-pct-${s.id}-${safeKey.replace(/[^a-zA-Z0-9_-]/g,'_')}">${snap.pct}% (${snap.done}/${snap.total})</span>
+          <button class="btn btn-green btn-sm" onclick="saveSnapEdit(${s.id},'${safeKey}')">저장</button>
+          <button class="log-del-btn" onclick="deleteSnap(${s.id},'${safeKey}')">삭제</button>
         </div>
       </div>
       <div class="log-sections">${secHTML}</div>
     </div>`;
   }).join('');
 }
+function normalizeSnap(snap){
+  if(!snap.detail)snap.detail=[];
+  let done=0,total=0;
+  snap.detail.forEach(sec=>{if(!sec.items)sec.items=[];sec.items.forEach(it=>{total++;if(it.checked)done++;});});
+  snap.done=done;snap.total=total;snap.pct=total?Math.round(done/total*100):0;
+}
 function setLogFilter(id){logFilterId=id;renderLog();}
+function findSnap(sid,key){
+  const s=D.students.find(x=>x.id===sid);if(!s||!s.snapshots)return null;
+  const snap=s.snapshots.find(x=>x.key===key);return snap?{s,snap}:null;
+}
+function toggleSnapItem(sid,key,secIdx,itemIdx,checked){
+  const found=findSnap(sid,key);if(!found)return;
+  const {snap}=found;
+  if(!snap.detail||!snap.detail[secIdx]||!snap.detail[secIdx].items||!snap.detail[secIdx].items[itemIdx])return;
+  snap.detail[secIdx].items[itemIdx].checked=!!checked;
+  normalizeSnap(snap);
+  renderLog();
+}
+function saveSnapEdit(sid,key){
+  const found=findSnap(sid,key);if(!found)return;
+  normalizeSnap(found.snap);
+  saveD();
+  toast(found.s.name+' 활동 기록을 수정했어요','g');
+  renderLog();renderOv();
+}
 function deleteSnap(sid,key){
   const s=D.students.find(x=>x.id===sid);if(!s||!s.snapshots)return;
   if(!confirm('이 기록을 삭제할까요?'))return;
@@ -357,14 +404,30 @@ function renderCosmos(){
   document.getElementById('cosmosLegend').innerHTML=D.students.filter(s=>s.stars>0).map(s=>`<div class="cl-chip"><div class="cl-dot" style="background:${SC[s.colorIdx%8]}"></div>${s.name} ⭐${s.stars}</div>`).join('');
 }
 
-function renderManage(){document.getElementById('manageGrid').innerHTML=D.students.map(s=>{const cc=CC[s.colorIdx%8],pct=Math.min(Math.round(s.pieces/D.totalPieces*100),100);return`<div class="sm-card"><div class="sm-top"><div class="s-dot" style="background:${cc.av};color:${cc.top};border-color:${cc.top}">${s.name.slice(0,2)}</div><div class="sm-name">${s.name}</div></div><div id="rename-area-${s.id}" style="display:none;margin-bottom:8px"><div style="display:flex;gap:5px"><input id="rename-input-${s.id}" value="${s.name}" style="flex:1;padding:5px 10px;border:2.5px solid var(--dark);border-radius:999px;font-size:13px;font-weight:800;font-family:inherit;background:#fffbe6"/><button class="btn btn-green btn-sm" onclick="saveName(${s.id})">저장</button><button class="btn btn-ghost btn-sm" onclick="cancelRename(${s.id})">취소</button></div></div><div class="sm-info">별 ${s.stars}개 · 조각 ${s.pieces}/${D.totalPieces}</div><div class="bar-sm" style="width:100%;margin-bottom:8px"><div class="bar-sm-fill" style="width:${pct}%;background:${cc.top}"></div></div><div class="sm-acts"><button class="btn btn-ghost btn-sm" onclick="toggleRename(${s.id})">✏ 이름</button><button class="btn btn-ghost btn-sm" onclick="addPcsManual(${s.id})">+조각</button><button class="btn btn-ghost btn-sm" onclick="addStarManual(${s.id})">+별</button><button class="btn btn-danger btn-sm" onclick="resetStudent(${s.id})">초기화</button><button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">삭제</button></div><div class="sm-hist">${[...(s.history||[])].reverse().slice(0,3).map(h=>`${h.date} ${h.pct}% ${h.star?'⭐':'+'+h.pieces+'조각'}`).join(' / ')||'기록 없음'}</div></div>`;}).join('')}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function todayChecks(s){if(!s.checks)s.checks={};if(!s.checks[todayKey])s.checks[todayKey]={};return s.checks[todayKey];}
+function countTodayDoneAdmin(s){const t=todayChecks(s);let done=0,total=0;D.sections.forEach(sec=>{sec.items.forEach((_,i)=>{total++;if(t[sec.id+'_'+i])done++;});});return {done,total,pct:total?Math.round(done/total*100):0};}
+function renderManage(){document.getElementById('manageGrid').innerHTML=D.students.map(s=>{const cc=CC[s.colorIdx%8],pct=Math.min(Math.round(s.pieces/D.totalPieces*100),100),tc=countTodayDoneAdmin(s);return`<div class="sm-card"><div class="sm-top"><div class="s-dot" style="background:${cc.av};color:${cc.top};border-color:${cc.top}">${s.name.slice(0,2)}</div><div class="sm-name">${esc(s.name)}</div></div><div id="rename-area-${s.id}" style="display:none;margin-bottom:8px"><div style="display:flex;gap:5px"><input id="rename-input-${s.id}" value="${esc(s.name)}" style="flex:1;padding:5px 10px;border:2.5px solid var(--dark);border-radius:999px;font-size:13px;font-weight:800;font-family:inherit;background:#fffbe6"/><button class="btn btn-green btn-sm" onclick="saveName(${s.id})">저장</button><button class="btn btn-ghost btn-sm" onclick="cancelRename(${s.id})">취소</button></div></div>
+<div class="counter-row"><span class="counter-label">조각</span><button class="btn btn-ghost btn-sm" onclick="changePieces(${s.id},-1)">−</button><span class="counter-value">${s.pieces}/${D.totalPieces}</span><button class="btn btn-ghost btn-sm" onclick="changePieces(${s.id},1)">+</button></div>
+<div class="counter-row"><span class="counter-label">별</span><button class="btn btn-ghost btn-sm" onclick="changeStars(${s.id},-1)">−</button><span class="counter-value">⭐ ${s.stars}</span><button class="btn btn-ghost btn-sm" onclick="changeStars(${s.id},1)">+</button></div>
+<div class="sm-info">오늘 활동 ${tc.done}/${tc.total}개 · ${tc.pct}%</div><div class="bar-sm" style="width:100%;margin-bottom:8px"><div class="bar-sm-fill" style="width:${pct}%;background:${cc.top}"></div></div>
+<div class="sm-acts"><button class="btn btn-ghost btn-sm" onclick="toggleRename(${s.id})">✏ 이름</button><button class="btn btn-primary btn-sm" onclick="toggleCheckEditor(${s.id})">✅ 활동 수정</button><button class="btn btn-danger btn-sm" onclick="resetTodayStudent(${s.id})">오늘 초기화</button><button class="btn btn-danger btn-sm" onclick="resetStudent(${s.id})">전체 초기화</button><button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">삭제</button></div>
+<div id="check-edit-${s.id}" class="check-edit-box">${renderCheckEditorHTML(s)}</div>
+<div class="sm-hist">${[...(s.history||[])].reverse().slice(0,3).map(h=>`${h.date} ${h.pct}% ${h.star?'⭐':'+'+h.pieces+'조각'}`).join(' / ')||'기록 없음'}</div></div>`;}).join('')}
+function renderCheckEditorHTML(s){const t=todayChecks(s);return D.sections.map(sec=>`<div><div class="check-edit-title">${sec.icon} ${esc(sec.title)}</div>${sec.items.map((item,i)=>{const k=sec.id+'_'+i,ck=!!t[k];return`<label class="check-edit-item"><input type="checkbox" ${ck?'checked':''} onchange="setStudentCheck(${s.id},'${sec.id}',${i},this.checked)"><span>${esc(item)}</span></label>`}).join('')}</div>`).join('')+`<button class="btn btn-green btn-sm" style="margin-top:8px" onclick="saveCheckEditor(${s.id})">활동 저장</button>`;}
+function toggleCheckEditor(id){const box=document.getElementById('check-edit-'+id);if(!box)return;box.classList.toggle('open');}
+function setStudentCheck(id,secId,idx,checked){const s=D.students.find(x=>x.id===id);if(!s)return;const t=todayChecks(s);t[secId+'_'+idx]=!!checked;}
+function saveCheckEditor(id){const s=D.students.find(x=>x.id===id);if(!s)return;saveD();toast(s.name+' 활동 체크를 저장했어요','g');renderManage();renderOv();}
+function resetTodayStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 학생의 오늘 활동 체크를 초기화할까요?'))return;if(!s.checks)s.checks={};delete s.checks[todayKey];saveD();toast('오늘 활동 체크 초기화!','r');renderManage();renderOv();}
+function changePieces(id,delta){const s=D.students.find(x=>x.id===id);if(!s)return;s.pieces=Math.max(0,(s.pieces||0)+delta);if(s.pieces>=D.totalPieces){s.stars=(s.stars||0)+1;s.pieces=0;toast('조각이 모여 별 1개가 추가됐어요!','g');}else{toast(delta>0?'조각 1개 추가':'조각 1개 삭제',delta>0?'g':'r');}saveD();renderManage();renderOv();}
+function changeStars(id,delta){const s=D.students.find(x=>x.id===id);if(!s)return;s.stars=Math.max(0,(s.stars||0)+delta);saveD();toast(delta>0?'별 1개 추가':'별 1개 삭제',delta>0?'g':'r');renderManage();renderOv();}
 function toggleRename(id){const area=document.getElementById('rename-area-'+id);if(!area)return;const visible=area.style.display!=='none';area.style.display=visible?'none':'block';if(!visible){const inp=document.getElementById('rename-input-'+id);if(inp)inp.focus();}}
 function cancelRename(id){const area=document.getElementById('rename-area-'+id);if(area)area.style.display='none';}
 function saveName(id){const s=D.students.find(x=>x.id===id);if(!s)return;const inp=document.getElementById('rename-input-'+id);const newName=inp?inp.value.trim():'';if(!newName){toast('이름을 입력해 주세요!','r');return;}s.name=newName;saveD();toast('이름이 변경됐어요! ✏','g');renderManage();renderOv();}
-function addStudent(){const n=document.getElementById('newName').value.trim();if(!n)return;D.students.push({id:Date.now(),name:n,pieces:0,stars:0,history:[],colorIdx:D.students.length%8,checks:{}});saveD();document.getElementById('newName').value='';toast('추가됐어요! 🎉','g');renderManage();}
-function addPcsManual(id){const s=D.students.find(x=>x.id===id);if(!s)return;const n=parseInt(prompt('추가할 조각 수:'));if(isNaN(n)||n<=0)return;s.pieces=Math.min(s.pieces+n,D.totalPieces);if(s.pieces>=D.totalPieces){s.stars++;s.pieces=0;toast('⭐ 별 획득!','g');}else toast('조각 '+n+'개 추가!','g');saveD();renderManage();renderOv();}
-function addStarManual(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 학생에게 별 1개 추가?'))return;s.stars++;saveD();toast('⭐ 별 추가!','g');renderManage();}
-function resetStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 초기화?'))return;s.pieces=0;s.stars=0;s.history=[];s.snapshots=[];s.checks={};saveD();toast(s.name+' 초기화!','r');renderManage();}
+function addStudent(){const n=document.getElementById('newName').value.trim();if(!n)return;D.students.push({id:Date.now(),name:n,pieces:0,stars:0,history:[],snapshots:[],colorIdx:D.students.length%8,checks:{}});saveD();document.getElementById('newName').value='';toast('추가됐어요! 🎉','g');renderManage();}
+function addPcsManual(id){changePieces(id,1)}
+function addStarManual(id){changeStars(id,1)}
+function resetStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 전체 기록을 초기화할까요?'))return;s.pieces=0;s.stars=0;s.history=[];s.snapshots=[];s.checks={};saveD();toast(s.name+' 초기화!','r');renderManage();renderOv();}
 function deleteStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 학생을 명단에서 삭제할까요?'))return;D.students=D.students.filter(x=>x.id!==id);saveD();toast('학생이 삭제됐어요','r');renderManage();renderOv();}
 
 function renderSettings(){document.getElementById('setTotal').value=D.totalPieces;renderRuleRows();renderSectionEditor();}
