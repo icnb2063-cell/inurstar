@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>🚀 나만의 별로 가는 우주선!</title>
+<title>🚀 나만의 별로 가는 우주선</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -314,7 +314,91 @@ WF[2]=[[2,0,HA],[3,0,HA],[4,0,HA],[1,1,SK],[2,1,SK],[3,1,SK],[4,1,SK],[5,1,SK],[
 WF[3]=[[2,0,HA],[3,0,HA],[4,0,HA],[1,1,SK],[2,1,SK],[3,1,SK],[4,1,SK],[5,1,SK],[1,2,SK],[2,2,SK],[3,2,SK],[4,2,SK],[5,2,SK],[2,3,SK],[3,3,SK],[4,3,SK],[1,4,SH],[2,4,SH],[3,4,SH],[4,4,SH],[5,4,SH],[1,5,SH],[2,5,SH],[3,5,SH],[4,5,SH],[5,5,SH],[1,6,SH],[2,6,SH],[3,6,SH],[4,6,SH],[5,6,SH],[0,4,SK],[0,3,SK],[0,2,WR],[0,1,WR],[6,5,SK],[7,5,SK],[1,7,PA],[2,7,PA],[3,7,PA],[4,7,PA],[1,8,PA],[2,8,PA],[3,8,PA],[4,8,PA],[2,9,PA],[3,9,PA],[1,9,PA],[4,9,PA],[1,10,PA],[4,10,PA]];
 function stopW(){if(wTimer){clearInterval(wTimer);wTimer=null}}
 function startW(stage,sc){stopW();function draw(){const c=document.getElementById('clWorker');if(!c){stopW();return}const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);const f=WF[wFrame%4],offX=1,offY=stage>=3?8:stage>=1?16:26;f.forEach(([cx,cy,col])=>{ctx.fillStyle=col;ctx.fillRect((offX+cx)*PX,(offY+cy)*PX,PX,PX)});wFrame++;}draw();wTimer=setInterval(draw,220);}
-function renderCosmos(){const total=D.students.reduce((a,s)=>a+s.stars,0);document.getElementById('cosmosSub').textContent=`우리 반이 모은 별 총 ${total}개! ✨`;const c=document.getElementById('cosmosC'),ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.fillStyle='#04040f';ctx.fillRect(0,0,W,H);const grd=ctx.createRadialGradient(W/2,H/2,10,W/2,H/2,150);grd.addColorStop(0,'rgba(60,40,120,0.2)');grd.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);for(let i=0;i<110;i++){const x=(i*173+7)%W,y=(i*97+13)%H,r=i%5===0?1.8:i%3===0?1.1:.5,op=.08+(i%7)*.04;ctx.fillStyle=`rgba(255,255,255,${op})`;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}const pCols=['rgba(255,201,7,0.12)','rgba(0,166,81,0.1)','rgba(38,56,196,0.1)','rgba(139,47,201,0.1)'];for(let i=0;i<28;i++){const x=(i*211+30)%W,y=(i*133+20)%H,r=(i%3+1)*3;ctx.fillStyle=pCols[i%4];ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}const placed=[];D.students.forEach((s,si)=>{if(!s.stars)return;const sc=SC[s.colorIdx%8];let px,py,tries=0;do{px=28+(si*89+tries*41)%414;py=24+(si*67+tries*31)%252;tries++}while(tries<50&&placed.some(p=>Math.hypot(p.x-px,p.y-py)<34));placed.push({x:px,y:py});const glow=ctx.createRadialGradient(px,py,2,px,py,18);glow.addColorStop(0,sc+'55');glow.addColorStop(1,sc+'00');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(px,py,18,0,Math.PI*2);ctx.fill();const R=12;ctx.save();ctx.translate(px,py);ctx.beginPath();for(let i=0;i<10;i++){const a=(i*36-90)*Math.PI/180,r=i%2===0?R:R*.4;i===0?ctx.moveTo(r*Math.cos(a),r*Math.sin(a)):ctx.lineTo(r*Math.cos(a),r*Math.sin(a))}ctx.closePath();ctx.fillStyle=sc;ctx.globalAlpha=.95;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 9px sans-serif';ctx.textAlign='center';ctx.fillText(String(s.stars),0,3);ctx.fillStyle=sc;ctx.font='bold 9px sans-serif';ctx.globalAlpha=.9;ctx.fillText(s.name,0,R+11);ctx.globalAlpha=1;ctx.restore();});if(!total){ctx.fillStyle='#2a3060';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText('아직 별이 없어요!',W/2,H/2);ctx.fillStyle='#1a2050';ctx.font='bold 12px sans-serif';ctx.fillText('조각을 모아 첫 번째 별을 받아요!',W/2,H/2+20)}document.getElementById('cosmosLegend').innerHTML=D.students.filter(s=>s.stars>0).map(s=>`<div class="cl-chip"><div class="cl-dot" style="background:${SC[s.colorIdx%8]}"></div>${s.name} ⭐${s.stars}</div>`).join('');}
+function drawNameStar(ctx,x,y,R,name,opt={}){
+  const glowR=opt.big?R*2.3:R*1.9;
+  const glow=ctx.createRadialGradient(x,y,2,x,y,glowR);
+  glow.addColorStop(0,opt.big?'rgba(255,210,40,.85)':opt.sparkle?'rgba(255,220,60,.65)':'rgba(255,201,7,.45)');
+  glow.addColorStop(.45,opt.big?'rgba(255,170,0,.35)':opt.sparkle?'rgba(255,201,7,.25)':'rgba(255,201,7,.12)');
+  glow.addColorStop(1,'rgba(255,201,7,0)');
+  ctx.fillStyle=glow;ctx.beginPath();ctx.arc(x,y,glowR,0,Math.PI*2);ctx.fill();
+
+  if(opt.sparkle||opt.big){
+    ctx.save();ctx.strokeStyle=opt.big?'rgba(255,235,120,.75)':'rgba(255,235,120,.55)';ctx.lineWidth=opt.big?1.7:1.1;
+    const rays=opt.big?10:6;
+    for(let i=0;i<rays;i++){
+      const a=(i*360/rays+(opt.big?8:0))*Math.PI/180;
+      const r1=R*(opt.big?1.28:1.15), r2=R*(opt.big?1.75:1.48);
+      ctx.beginPath();ctx.moveTo(x+Math.cos(a)*r1,y+Math.sin(a)*r1);ctx.lineTo(x+Math.cos(a)*r2,y+Math.sin(a)*r2);ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  ctx.save();ctx.translate(x,y);ctx.beginPath();
+  for(let i=0;i<10;i++){
+    const a=(i*36-90)*Math.PI/180, r=i%2===0?R:R*.43;
+    i===0?ctx.moveTo(r*Math.cos(a),r*Math.sin(a)):ctx.lineTo(r*Math.cos(a),r*Math.sin(a));
+  }
+  ctx.closePath();
+  const g=ctx.createLinearGradient(-R,-R,R,R);
+  g.addColorStop(0,'#FFF49A');g.addColorStop(.45,'#FFC907');g.addColorStop(1,opt.big?'#FF9F1C':'#F4A300');
+  ctx.fillStyle=g;ctx.fill();
+  ctx.strokeStyle=opt.big?'#FFE680':'#FFDE59';ctx.lineWidth=opt.big?3:2;ctx.stroke();
+  ctx.strokeStyle='rgba(133,80,0,.32)';ctx.lineWidth=1;ctx.stroke();
+
+  ctx.fillStyle='#7A3A00';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  const len=[...name].length;
+  let fs=opt.big?13:R>=15?11:R>=12?9:8;
+  if(len>=4)fs-=1;if(len>=5)fs-=1;
+  ctx.font=`900 ${Math.max(7,fs)}px 'Apple SD Gothic Neo', sans-serif`;
+  ctx.fillText(name,0,1);
+  ctx.restore();
+}
+
+function renderCosmos(){
+  const total=D.students.reduce((a,s)=>a+(Number(s.stars)||0),0);
+  document.getElementById('cosmosSub').textContent=`우리 반이 모은 별 총 ${total}개! ✨`;
+  const c=document.getElementById('cosmosC'),ctx=c.getContext('2d'),W=c.width,H=c.height;
+  ctx.fillStyle='#03061d';ctx.fillRect(0,0,W,H);
+  const bg=ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#03061d');bg.addColorStop(.45,'#10116a');bg.addColorStop(1,'#230b56');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  const grd=ctx.createRadialGradient(W*.63,H*.42,10,W*.63,H*.42,210);
+  grd.addColorStop(0,'rgba(139,47,201,.38)');grd.addColorStop(.45,'rgba(38,56,196,.22)');grd.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<140;i++){
+    const x=(i*173+7)%W,y=(i*97+13)%H,r=i%11===0?1.8:i%5===0?1.2:.55,op=.10+(i%7)*.045;
+    ctx.fillStyle=`rgba(255,255,255,${op})`;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  }
+  // 장식 행성
+  ctx.globalAlpha=.35;ctx.fillStyle='#7f5cff';ctx.beginPath();ctx.arc(28,H-38,42,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a99cff';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(28,H-38,58,13,-.15,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#ff8c2a';ctx.beginPath();ctx.arc(W-32,H-42,12,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+
+  const stars=[];
+  D.students.forEach((s,si)=>{
+    const n=Math.max(0,Number(s.stars)||0);
+    for(let k=0;k<n;k++)stars.push({s,si,k,total:n});
+  });
+  const placed=[];
+  stars.forEach((it,idx)=>{
+    const n=it.total;
+    const big=n>=10, sparkle=n>=5;
+    const R=big?22:(sparkle?16:(n===1?12:14));
+    let px,py,tries=0;
+    do{
+      px=R+12+((idx*83+it.si*37+tries*29)%Math.max(1,W-(R+12)*2));
+      py=R+14+((idx*61+it.si*53+tries*43)%Math.max(1,H-(R+16)*2));
+      tries++;
+    }while(tries<80&&placed.some(p=>Math.hypot(p.x-px,p.y-py)<(p.r+R+8)));
+    placed.push({x:px,y:py,r:R});
+    drawNameStar(ctx,px,py,R,it.s.name,{sparkle,big});
+  });
+  if(!total){
+    ctx.fillStyle='#dce4ff';ctx.font='bold 15px sans-serif';ctx.textAlign='center';ctx.fillText('아직 별이 없어요!',W/2,H/2);
+    ctx.fillStyle='#8090dd';ctx.font='bold 12px sans-serif';ctx.fillText('조각을 모아 첫 번째 별을 받아요!',W/2,H/2+22);
+  }
+  document.getElementById('cosmosLegend').innerHTML=`<div class="cl-chip"><div class="cl-dot" style="background:#FFC907"></div>별 1개: 작은 별</div><div class="cl-chip"><div class="cl-dot" style="background:#FFC907"></div>별 2~4개: 개수만큼 표시</div><div class="cl-chip"><div class="cl-dot" style="background:#FFE680"></div>별 5개 이상: 반짝임</div><div class="cl-chip"><div class="cl-dot" style="background:#FF9F1C"></div>별 10개 이상: 큰 황금별</div>`;
+}
 initApp();
 
 async function initApp(){await loadRemote();renderGrid();}
