@@ -1,23 +1,17 @@
-우리 반 우주 Cloudflare Pages + Functions + D1 배포용(v2)
+inurstar 안정화 버전
 
-포함 파일
-- student.html: 학생용 화면. 오른쪽 아래 🔐 관리자 버튼 추가. 비밀번호 6435.
-- admin.html: 관리자 화면. 직접 접속해도 비밀번호 6435 입력 후 열림.
-- functions/api/data.js: Cloudflare Pages Functions API. /api/data 경로로 D1에 저장.
-- schema.sql: D1 수동 초기화용 SQL. v2에서는 data.js가 테이블을 자동 생성하지만, 필요 시 실행 가능.
+업로드 파일:
+- index.html
+- admin.html
+- functions/api/data.js
+- schema.sql
 
-중요 설정
-1. 이 폴더 전체를 GitHub 저장소에 업로드합니다.
-2. Cloudflare Pages에서 GitHub 저장소를 연결해 배포합니다.
-   - ZIP/HTML 직접 업로드 방식은 Pages Functions가 작동하지 않을 수 있습니다.
-3. Cloudflare Pages 프로젝트 > Settings > Functions > D1 database bindings에서
-   - Variable name: DB
-   - D1 database: 생성한 데이터베이스
-   로 반드시 연결합니다.
-4. 배포 후 아래 주소가 JSON으로 열리는지 확인합니다.
-   https://배포주소.pages.dev/api/data
+주요 수정:
+1. 학생 화면(index.html)은 학생 1명 데이터만 updateStudent 방식으로 저장합니다.
+2. 관리자 화면(admin.html)은 학생별 수정은 학생 1명만 저장하고, 학생 추가/삭제/설정 변경만 전체 저장합니다.
+3. functions/api/data.js는 updateStudent와 saveState를 구분하여 처리합니다.
+4. 저장 요청이 겹칠 때 이전 데이터가 최신 조각 수를 덮어쓰는 문제를 줄였습니다.
 
-/api/data에서 오류가 나오면
-- "D1 binding DB가 없습니다" → D1 binding 이름을 DB로 설정하지 않은 상태입니다.
-- 404 → functions/api/data.js가 배포되지 않았거나 직접 업로드 방식입니다.
-- 500 → D1 연결 또는 권한 문제입니다.
+배포 방법:
+GitHub 저장소의 기존 파일을 같은 경로로 덮어쓴 뒤 Commit 하면 Cloudflare Pages가 자동 배포합니다.
+D1 binding 이름은 기존처럼 DB여야 합니다.
