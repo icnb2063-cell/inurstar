@@ -1,30 +1,17 @@
-공연 일정표 배포 안내 - 우주선 프로젝트와 같은 기본 구조
+inurstar 안정화 버전
 
-1. 이 압축 파일을 풉니다.
-2. 아래 파일들이 GitHub 저장소 맨 위에 바로 보이도록 업로드합니다.
+업로드 파일:
+- index.html
+- admin.html
+- functions/api/data.js
+- schema.sql
 
-   index.html
-   functions/api/shows.js
-   schema.sql
-   README.txt
+주요 수정:
+1. 학생 화면(index.html)은 학생 1명 데이터만 updateStudent 방식으로 저장합니다.
+2. 관리자 화면(admin.html)은 학생별 수정은 학생 1명만 저장하고, 학생 추가/삭제/설정 변경만 전체 저장합니다.
+3. functions/api/data.js는 updateStudent와 saveState를 구분하여 처리합니다.
+4. 저장 요청이 겹칠 때 이전 데이터가 최신 조각 수를 덮어쓰는 문제를 줄였습니다.
 
-   주의: musical_schedule_spaceship_style 폴더째 넣지 말고, 폴더 안의 파일들을 저장소 최상단에 올립니다.
-
-3. Cloudflare의 Workers 및 Pages에서 GitHub 저장소를 연결해 배포합니다.
-4. D1 SQLite 데이터베이스를 만듭니다. 예: muscheddb
-5. 프로젝트의 바인딩에서 D1 데이터베이스를 연결합니다.
-
-   변수 이름: DB
-   D1 데이터베이스: muscheddb
-
-6. D1의 콘솔 또는 데이터 탐색에서 schema.sql 내용을 실행합니다.
-   단, functions/api/shows.js에도 테이블 자동 생성 코드가 있어서 첫 접속 시 자동 생성될 수 있습니다.
-
-7. 다시 배포한 뒤 /api/shows 주소가 JSON을 반환하면 연결 성공입니다.
-
-테스트 방법
-- 사이트 주소 접속
-- 공연 추가
-- 새로고침
-- 다른 기기 또는 시크릿 창에서 같은 주소 접속
-- 같은 공연 목록이 보이면 성공입니다.
+배포 방법:
+GitHub 저장소의 기존 파일을 같은 경로로 덮어쓴 뒤 Commit 하면 Cloudflare Pages가 자동 배포합니다.
+D1 binding 이름은 기존처럼 DB여야 합니다.
