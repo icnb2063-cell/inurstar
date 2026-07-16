@@ -143,6 +143,7 @@ html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Goth
 <div class="app">
   <div class="hdr">
     <div class="hdr-inner"><span class="hdr-rocket">🚀</span><div class="hdr-title">나만의 별로 가는 우주선!</div></div>
+    <div id="modeBadge" style="display:inline-block;margin:-4px 0 10px;padding:5px 13px;border-radius:999px;background:#fff;color:var(--dark);font-size:12px;font-weight:900;border:2px solid var(--yellow)">학기 중 모드</div>
     <div class="nav-row">
       <button class="nav-b sel" id="nb-select" onclick="switchNav('select')"><span>👫</span>내 이름</button>
       <button class="nav-b" id="nb-cosmos" onclick="switchNav('cosmos')"><span>🌌</span>우리 반 우주</button>
@@ -159,7 +160,7 @@ html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Goth
       <div class="prog-top"><span class="prog-lbl">오늘 활동</span><span class="prog-num"><span id="clDone">0</span>/<span id="clTotal">0</span></span></div>
       <div class="bar-wrap">
         <div class="bar-bg"><div class="bar-fill" id="clBar" style="width:0%"></div></div>
-        <div class="bar-marker"></div><div class="bar-marker-lbl">목표 70%</div>
+        <div class="bar-marker" id="targetMarker"></div><div class="bar-marker-lbl" id="targetMarkerLbl">목표 70%</div>
       </div>
       <div class="mission-pill pill-no" id="clHint">조금만 더 하면 미션 성공!</div>
     </div>
@@ -187,26 +188,62 @@ html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Goth
 </div>
 <script>
 const API_BASE=''; // Worker를 Pages와 같은 프로젝트에 연결하면 그대로 두세요. 별도 Worker URL을 쓰면 여기에 입력하세요.
-function defaults(){return{totalPieces:50,rules:[{min:70,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:[
+function termSections(){return[
   {id:'morning',tab:'🌤 등교길',icon:'🌤',iconBg:'#FFF9E6',title:'등교길',sub:'학교 가기 전, 가는 길',items:['활동 1','활동 2','활동 3','활동 4']},
   {id:'school',tab:'🏫 학교',icon:'🏫',iconBg:'#E6F0FF',title:'학교 생활',sub:'수업, 쉬는 시간, 점심',items:['활동 1','활동 2','활동 3','활동 4','활동 5']},
   {id:'afternoon',tab:'🌇 하교길',icon:'🌇',iconBg:'#FFF0E6',title:'하교길',sub:'집으로 돌아오는 길',items:['활동 1','활동 2','활동 3']},
   {id:'home',tab:'🏠 집에서',icon:'🏠',iconBg:'#E6FFE6',title:'집에서',sub:'집에 온 후 저녁까지',items:['활동 1','활동 2','활동 3','활동 4','활동 5']}
-],students:[]}}
+]}
+function vacationSections(){return[
+  {id:'vacation',tab:'☀️ 방학 미션',icon:'☀️',iconBg:'#FFF9D9',title:'오늘의 방학 미션',sub:'10개 중 5개 이상 실천하면 미션 성공!',requiredCount:4,items:[
+    '10분 이상 책을 읽었어요.',
+    '밤 10시30분 이전에 자고 오전 9시 이전에 일어났어요.',
+    '양치질을 하루 3번 했어요.',
+    '세 끼 식사를 골고루 먹었어요.',
+    '20분 이상 운동했어요.',
+    '가족 일을 10분 이상 도와드렸어요.',
+    '이부자리를 스스로 정리했어요.',
+    '내 물건이나 방을 5분 이상 정리했어요.',
+    '방학 과제나 공부를 10분 이상 했어요.',
+    '그림 그리기, 만들기, 악기 연습 등 취미 활동을 20분 이상 했어요.'
+  ]}
+]}
+function defaults(){const ts=termSections(),vs=vacationSections();return{
+  mode:'term',totalPieces:50,
+  termConfig:{targetPct:70,rules:[{min:70,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:ts},
+  vacationConfig:{targetPct:50,rules:[{min:50,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:vs},
+  rules:ts&&[{min:70,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:ts,students:[]}}
+function applyModeConfig(){
+  const cfg=D.mode==='vacation'?D.vacationConfig:D.termConfig;
+  D.sections=cfg.sections;D.rules=cfg.rules;
+}
+function syncActiveConfig(){
+  const cfg=D.mode==='vacation'?D.vacationConfig:D.termConfig;
+  cfg.sections=D.sections;cfg.rules=D.rules;
+}
+function activeTargetPct(){return D.mode==='vacation'?(D.vacationConfig.targetPct||50):(D.termConfig.targetPct||70)}
+function modeLabel(){return D.mode==='vacation'?'방학 중':'학기 중'}
 let D=defaults();
 let isSaving=false;
 function seedStudents(){if(D.students.length===0){['김민준','이서연','박지호','최수아','정현우','강나은','윤도현','임하린','송재원','오채은','한승민','류지아','신동현','백서현','문준혁','홍예린','조민재','권서준','노지현','엄태양','방다인'].forEach((n,i)=>D.students.push({id:i+1,name:n,pieces:0,stars:0,history:[],snapshots:[],colorIdx:i%8,checks:{}}));}}
 function normalizeD(){
   const base=defaults();
   if(!D||typeof D!=='object')D=base;
-  if(!D.sections)D.sections=base.sections;if(!D.rules)D.rules=base.rules;if(!D.totalPieces)D.totalPieces=50;if(!D.students)D.students=[];
+  if(!D.mode)D.mode='term';
+  if(!D.termConfig)D.termConfig={targetPct:70,rules:Array.isArray(D.rules)&&D.rules.length?D.rules:base.termConfig.rules,sections:Array.isArray(D.sections)&&D.sections.length?D.sections:base.termConfig.sections};
+  if(!D.vacationConfig)D.vacationConfig=base.vacationConfig;
+  if(!D.termConfig.sections)D.termConfig.sections=base.termConfig.sections;if(!D.termConfig.rules)D.termConfig.rules=base.termConfig.rules;if(!D.termConfig.targetPct)D.termConfig.targetPct=70;
+  if(!D.vacationConfig.sections||!D.vacationConfig.sections.length)D.vacationConfig.sections=base.vacationConfig.sections;if(!D.vacationConfig.rules||!D.vacationConfig.rules.length)D.vacationConfig.rules=base.vacationConfig.rules;if(!D.vacationConfig.targetPct)D.vacationConfig.targetPct=50;
+  if(!D.totalPieces)D.totalPieces=50;if(!D.students)D.students=[];
+  applyModeConfig();
   D.students.forEach((s,i)=>{if(!s.id)s.id=i+1;if(!s.history)s.history=[];if(!s.snapshots)s.snapshots=[];if(!s.checks)s.checks={};if(s.colorIdx===undefined)s.colorIdx=i%8;if(s.pieces===undefined)s.pieces=0;if(s.stars===undefined)s.stars=0;});
 }
 function todayLocalKey(){const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`;}
 function setServerStatus(msg){const el=document.getElementById('serverStatus');if(!el)return;if(msg){el.textContent=msg;el.classList.add('show');}else{el.textContent='';el.classList.remove('show');}}
 function shortErr(text){try{const j=JSON.parse(text);return j.fix||j.error||text}catch(_){return String(text).slice(0,160)}}
 async function apiFetch(path,options={}){
-  const res=await fetch(API_BASE+path,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
+  const url=(options.method&&options.method!=='GET')?API_BASE+path:API_BASE+path+(path.includes('?')?'&':'?')+'_='+Date.now();
+  const res=await fetch(url,{cache:'no-store',headers:{'Content-Type':'application/json','Cache-Control':'no-cache',...(options.headers||{})},...options});
   if(!res.ok){const t=await res.text();throw new Error(shortErr(t));}
   return res.json();
 }
@@ -216,8 +253,9 @@ async function loadRemote(){
 }
 let saveQueue=Promise.resolve();
 function saveD(){
+  syncActiveConfig();
   const s=getS&&getS();
-  const payload=s?{action:'updateStudent',student:s,state:D}:{action:'saveState',state:D};
+  const payload=s?{action:'updateStudent',student:s}:{action:'saveState',state:D};
   isSaving=true;
   saveQueue=saveQueue.then(()=>apiFetch('/api/data',{method:'POST',body:JSON.stringify(payload)}))
     .then((res)=>{setServerStatus('');if(res&&res.state){D=res.state;normalizeD();}})
@@ -237,8 +275,9 @@ const SC=['#8B2FC9','#00A651','#E8242B','#2638C4','#FF6B35','#00AEEF','#FFC907',
 const todayKey=todayLocalKey();
 let curId=null,curTab=null,wTimer=null,wFrame=0;
 (()=>{const bg=document.getElementById('bgF');const cols=['#FFC907','#00A651','#E8242B','#8B2FC9','#FF6B35','#2638C4'];for(let i=0;i<16;i++){const d=document.createElement('div');d.className='bg-blob';const s=(i%3+1)*22+'px';d.style.cssText=`width:${s};height:${s};background:${cols[i%6]};top:${(i*17+5)%100}%;left:${(i*23+3)%100}%;animation-delay:${(i*.35).toFixed(1)}s`;bg.appendChild(d);}})();
+function updateModeBadge(){const el=document.getElementById('modeBadge');if(el)el.textContent=D.mode==='vacation'?'☀️ 방학 중 모드':'🏫 학기 중 모드';}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
-async function switchNav(id){await loadRemote();['select','cosmos'].forEach(n=>document.getElementById('nb-'+n).classList.toggle('sel',n===id));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));if(id==='select'){stopW();document.getElementById('pg-select').classList.add('active');renderGrid();document.getElementById('saveBar').classList.remove('visible');}if(id==='cosmos'){document.getElementById('pg-cosmos').classList.add('active');renderCosmos();document.getElementById('saveBar').classList.remove('visible');}}
+async function switchNav(id){await loadRemote();updateModeBadge();['select','cosmos'].forEach(n=>document.getElementById('nb-'+n).classList.toggle('sel',n===id));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));if(id==='select'){stopW();document.getElementById('pg-select').classList.add('active');renderGrid();document.getElementById('saveBar').classList.remove('visible');}if(id==='cosmos'){document.getElementById('pg-cosmos').classList.add('active');renderCosmos();document.getElementById('saveBar').classList.remove('visible');}}
 function goBack(){stopW();document.getElementById('saveBar').classList.remove('visible');switchNav('select')}
 
 function saveSnapshot(){
@@ -259,9 +298,9 @@ function saveSnapshot(){
   const already=s.snapshots.find(x=>x.key===snapKey);
   if(already){
     // 덮어쓰기
-    already.done=done;already.total=total;already.pct=p;already.detail=detail;already.time=timeStr;
+    already.done=done;already.total=total;already.pct=p;already.detail=detail;already.time=timeStr;already.mode=D.mode;already.modeLabel=modeLabel();
   } else {
-    s.snapshots.push({key:snapKey,date:dateStr,time:timeStr,done,total,pct:p,detail});
+    s.snapshots.push({key:snapKey,date:dateStr,time:timeStr,mode:D.mode,modeLabel:modeLabel(),done,total,pct:p,detail});
   }
   // 최대 60개 보관
   if(s.snapshots.length>60)s.snapshots=s.snapshots.slice(-60);
@@ -273,7 +312,7 @@ function saveSnapshot(){
   toast('💾 활동 상황이 저장됐어요!');
 }
 function renderGrid(){document.getElementById('sGrid').innerHTML=D.students.map(s=>{const cc=CC[s.colorIdx%8],pct=Math.min(Math.round(s.pieces/D.totalPieces*100),100);return`<div class="s-card" onclick="openS(${s.id})"><div class="s-top-bar" style="background:${cc.top}"></div><div class="s-av" style="background:${cc.av};color:${cc.ac}">${s.name.slice(0,2)}</div><div class="s-name">${s.name}</div><div class="s-stars-sm" style="color:${cc.top}">${s.stars>0?'⭐'.repeat(Math.min(s.stars,5))+(s.stars>5?'…':''):'별 없음'}</div><div class="s-bar-bg"><div class="s-bar-fill" style="width:${pct}%;background:${cc.top}"></div></div></div>`;}).join('')}
-function openS(id){curId=id;curTab=D.sections[0].id;const s=D.students.find(x=>x.id===id);if(!s)return;if(!s.checks)s.checks={};document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('pg-cl').classList.add('active');['select','cosmos'].forEach(n=>document.getElementById('nb-'+n).classList.remove('sel'));document.getElementById('saveBar').classList.add('visible');renderCL();}
+function openS(id){curId=id;curTab=(D.sections[0]||{}).id||null;const s=D.students.find(x=>x.id===id);if(!s)return;if(!s.checks)s.checks={};document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('pg-cl').classList.add('active');['select','cosmos'].forEach(n=>document.getElementById('nb-'+n).classList.remove('sel'));document.getElementById('saveBar').classList.add('visible');renderCL();}
 function getS(){return D.students.find(x=>x.id===curId)}
 function tc(s){return s.checks[todayKey]||{}}
 function allItems(){return D.sections.flatMap(sec=>sec.items.map((_,i)=>({secId:sec.id,i})))}
@@ -284,17 +323,20 @@ function hadToday(s){return(s.history||[]).some(h=>h.date===todayKey)}
 function getPcs(p){for(const r of D.rules)if(p>=r.min&&p<=r.max)return r.pieces;return 0}
 function renderCL(){
   const s=getS();if(!s)return;
-  const cc=CC[s.colorIdx%8],done=countDone(s),total=totalItems(),p=pctVal(s),ok=p>=70,got=hadToday(s);
+  const cc=CC[s.colorIdx%8],done=countDone(s),total=totalItems(),p=pctVal(s),target=activeTargetPct(),ok=p>=target,got=hadToday(s);
   document.getElementById('sHero').innerHTML=`<div class="s-hero-av" style="background:${cc.av};color:${cc.ac}">${s.name.slice(0,2)}</div><div><div class="s-hero-name" style="color:${cc.top}">${s.name}</div><div class="s-hero-date">${new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'})}</div></div>`;
-  document.getElementById('clDone').textContent=done;document.getElementById('clTotal').textContent=total;document.getElementById('clBar').style.width=Math.min(p,100)+'%';
+  document.getElementById('clDone').textContent=done;document.getElementById('clTotal').textContent=total;document.getElementById('clBar').style.width=Math.min(p,100)+'%';const mk=document.getElementById('targetMarker'),ml=document.getElementById('targetMarkerLbl');if(mk)mk.style.left=target+'%';if(ml){ml.style.left=target+'%';ml.textContent='목표 '+target+'%';}
   const hint=document.getElementById('clHint');
   if(got){hint.textContent='✅ 오늘 조각을 받았어요!';hint.className='mission-pill pill-done';}
   else if(ok){hint.textContent='🎉 미션 성공! 조각을 받을 수 있어요!';hint.className='mission-pill pill-ok';}
-  else{hint.textContent=`${Math.ceil(total*.7)-done}개만 더 하면 미션 성공!`;hint.className='mission-pill pill-no';}
+  else{hint.textContent=`${Math.max(0,Math.ceil(total*target/100)-done)}개만 더 하면 미션 성공!`;hint.className='mission-pill pill-no';}
   const t=tc(s);
-  document.getElementById('clTabs').innerHTML=D.sections.map(sec=>{const sd=sec.items.every((_,i)=>t[sec.id+'_'+i]);return`<button class="tab-pill${sec.id===curTab?' active':''}${sd?' done':''}" onclick="swTab('${sec.id}')">${sec.tab}${sd?' ✓':''}</button>`;}).join('');
-  const sec=D.sections.find(x=>x.id===curTab),sd=sec.items.every((_,i)=>t[sec.id+'_'+i]);
-  let html=`<div class="sec-card"><div class="sec-hd"><div class="sec-ico" style="background:${sec.iconBg}">${sec.icon}</div><div><div class="sec-title">${sec.title}${sd?'<span class="done-pill">완료! 🎉</span>':''}</div><div class="sec-sub">${sec.sub}</div></div></div><div class="ci-list">${sec.items.map((item,i)=>{const ck=!!t[sec.id+'_'+i];return`<div class="ci${ck?' checked':''}" onclick="toggle('${sec.id}',${i})"><div class="ci-box">${ck?'✓':''}</div><span class="ci-lbl">${item}</span></div>`;}).join('')}</div></div>`;
+  const tabs=document.getElementById('clTabs');
+  if(D.mode==='vacation')tabs.innerHTML='';
+  else tabs.innerHTML=D.sections.map(sec=>{const sd=sec.items.every((_,i)=>t[sec.id+'_'+i]);return`<button class="tab-pill${sec.id===curTab?' active':''}${sd?' done':''}" onclick="swTab('${sec.id}')">${sec.tab}${sd?' ✓':''}</button>`;}).join('');
+  const sec=D.mode==='vacation'?D.sections[0]:(D.sections.find(x=>x.id===curTab)||D.sections[0]),sd=sec.items.every((_,i)=>t[sec.id+'_'+i]);
+  let itemsHtml=sec.items.map((item,i)=>{const ck=!!t[sec.id+'_'+i];const badge=D.mode==='vacation'?(i<(sec.requiredCount||4)?'<span style="font-size:10px;background:#FFC907;color:#0D1580;border-radius:999px;padding:2px 7px;margin-right:6px;font-weight:900">매일</span>':'<span style="font-size:10px;background:#E6F0FF;color:#2638C4;border-radius:999px;padding:2px 7px;margin-right:6px;font-weight:900">선택</span>'):'';return`<div class="ci${ck?' checked':''}" onclick="toggle('${sec.id}',${i})"><div class="ci-box">${ck?'✓':''}</div><span class="ci-lbl">${badge}${item}</span></div>`;}).join('');
+  let html=`<div class="sec-card"><div class="sec-hd"><div class="sec-ico" style="background:${sec.iconBg}">${sec.icon}</div><div><div class="sec-title">${sec.title}${sd?'<span class="done-pill">완료! 🎉</span>':''}</div><div class="sec-sub">${sec.sub}</div></div></div><div class="ci-list">${itemsHtml}</div></div>`;
   if(ok&&!got){const pcs=getPcs(p);html+=`<div class="reward-box"><div class="reward-stars">${p>=100?'⭐⭐⭐':'⭐⭐'}</div><div class="reward-title">${p>=100?'완벽해요! 최고야! 🏆':'미션 성공! 잘했어요! 🎖'}</div><div class="reward-desc">${p>=100?'오늘 모든 활동을 완료했어요!':'오늘 70% 이상 완료했어요!'}</div><div class="reward-badge">🧩 조각 ${pcs}개 획득!</div><button class="award-btn" onclick="award()">🚀 조각 받기!</button></div>`;}
   else if(got){html+=`<div class="already-box"><div class="already-ico">🌟</div><div class="already-txt">오늘 조각을 이미 받았어요!<br>내일도 파이팅!</div></div>`;}
   document.getElementById('clSection').innerHTML=html;
@@ -308,7 +350,7 @@ function renderCL(){
 }
 function swTab(id){curTab=id;renderCL()}
 async function toggle(secId,idx){const s=getS();if(!s)return;if(isSaving){toast('저장 중이에요. 잠시만 기다려 주세요!');return}if(hadToday(s)){toast('오늘 조각을 이미 받았어요!');return}if(!s.checks[todayKey])s.checks[todayKey]={};const k=secId+'_'+idx;s.checks[todayKey][k]=!s.checks[todayKey][k];renderCL();await saveD();}
-async function award(){const s=getS();if(!s||hadToday(s))return;if(isSaving){toast('저장 중이에요. 잠시만 기다려 주세요!');return}const p=pctVal(s),pcs=getPcs(p);if(!pcs){toast('70% 이상 달성해야 해요!');return}s.pieces=(Number(s.pieces)||0)+pcs;if(s.pieces>=D.totalPieces){s.stars=(Number(s.stars)||0)+1;s.pieces=0;s.history.push({date:todayKey,pct:p,pieces:pcs,star:true});toast('⭐ 별 획득! 우주선 다시 시작!');}else{s.history.push({date:todayKey,pct:p,pieces:pcs,star:false});toast('🧩 조각 '+pcs+'개 획득!')}renderCL();await saveD();}
+async function award(){const s=getS();if(!s||hadToday(s))return;if(isSaving){toast('저장 중이에요. 잠시만 기다려 주세요!');return}const p=pctVal(s),pcs=getPcs(p);if(!pcs){toast(activeTargetPct()+'% 이상 달성해야 해요!');return}s.pieces=(Number(s.pieces)||0)+pcs;if(s.pieces>=D.totalPieces){s.stars=(Number(s.stars)||0)+1;s.pieces=0;s.history.push({date:todayKey,mode:D.mode,modeLabel:modeLabel(),pct:p,pieces:pcs,star:true});toast('⭐ 별 획득! 우주선 다시 시작!');}else{s.history.push({date:todayKey,mode:D.mode,modeLabel:modeLabel(),pct:p,pieces:pcs,star:false});toast('🧩 조각 '+pcs+'개 획득!')}renderCL();await saveD();}
 function drawShip(c,stage,sc){const ctx=c.getContext('2d'),W=c.width,H=c.height;ctx.fillStyle='#04040f';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(255,255,255,0.22)';[[12,14],[88,22],[18,94],[90,76],[6,56],[68,10]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill()});if(stage===0){ctx.strokeStyle='#1e1e5a';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(50,60,20,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#2a3060';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText('조각을',50,57);ctx.fillText('모아요!',50,70);return}const grey='#5A6478',silver='#B0BCC8',blue='#378ADD',fire='#FFC907',ox=50,oy=14;function ea(cx,cy,rx,ry,cl,a){ctx.globalAlpha=a;ctx.fillStyle=cl;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}function rr(x,y,w,h,r,cl,a){ctx.globalAlpha=a;ctx.fillStyle=cl;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();ctx.globalAlpha=1}function po(pts,cl,a){ctx.globalAlpha=a;ctx.fillStyle=cl;ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();ctx.fill();ctx.globalAlpha=1}if(stage>=1){ea(ox,oy+54,20,7,grey,.75);rr(ox-10,oy+23,20,33,4,grey,1)}if(stage>=2)ea(ox,oy+24,15,22,silver,1);if(stage>=3){po([[ox-19,oy+56],[ox-10,oy+23],[ox-10,oy+56]],sc,.9);po([[ox+19,oy+56],[ox+10,oy+23],[ox+10,oy+56]],sc,.9)}if(stage>=4){ea(ox,oy+11,10,14,blue,.92);ea(ox,oy+4,6,6,blue,.55);ea(ox,oy+4,3,3,'#D8EEFF',.95)}if(stage>=5){ea(ox-10,oy+60,5,3,fire,.95);ea(ox+10,oy+60,5,3,fire,.95);ea(ox,oy+68,7,4,fire,.9)}}
 const PX=4,SK='#F4C5A0',HA='#5C3D1E',SH='#2638C4',PA='#4A5568',WR='#C8C8D8',SP='#FFC907';
 const WF=[[],[],[],[]];
@@ -405,7 +447,20 @@ function renderCosmos(){
 }
 initApp();
 
-async function initApp(){await loadRemote();renderGrid();}
+async function refreshModeFromServer(){
+  const before=D.mode;
+  await loadRemote();
+  updateModeBadge();
+  if(before!==D.mode){
+    curTab=D.sections[0]&&D.sections[0].id;
+    if(document.getElementById('pg-cl').classList.contains('active')&&curId!==null)renderCL();
+    else if(document.getElementById('pg-select').classList.contains('active'))renderGrid();
+  }
+}
+window.addEventListener('focus',refreshModeFromServer);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshModeFromServer();});
+setInterval(()=>{if(!document.hidden)refreshModeFromServer();},15000);
+async function initApp(){await loadRemote();updateModeBadge();renderGrid();}
 </script>
 </body>
 </html>

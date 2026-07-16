@@ -61,6 +61,11 @@ html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Goth
 .sm-info{font-size:12px;font-weight:800;color:#888;margin-bottom:8px}
 .sm-acts{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
 .sm-hist{font-size:10px;color:#bbb;font-weight:700;max-height:50px;overflow-y:auto;line-height:1.6}
+/* MODE */
+.mode-card{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode-btn{padding:14px 10px;border:3px solid var(--dark);border-radius:16px;background:#fff;color:var(--dark);font-family:inherit;font-size:14px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 var(--dark)}
+.mode-btn.active{background:var(--yellow)}
+.mode-note{font-size:12px;font-weight:800;color:#777;line-height:1.55;margin-top:10px}
 /* SETTINGS */
 .setting-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .setting-lbl{font-size:13px;font-weight:800;color:#555;flex:1}
@@ -193,6 +198,14 @@ html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Goth
     <div class="sec-title">⚙ 설정</div>
     <div class="sec-sub">체크리스트 항목과 보상 기준을 설정해요</div>
     <div class="card">
+      <div class="card-title">🔁 운영 모드 선택</div>
+      <div class="mode-card">
+        <button class="mode-btn" id="modeTermBtn" onclick="changeMode('term')">🏫 학기 중 모드</button>
+        <button class="mode-btn" id="modeVacationBtn" onclick="changeMode('vacation')">☀️ 방학 중 모드</button>
+      </div>
+      <div class="mode-note" id="modeNote"></div>
+    </div>
+    <div class="card">
       <div class="card-title">🧩 우주선 완성 조각 수</div>
       <div class="setting-row">
         <span class="setting-lbl">총 몇 조각이 모여야 별 1개를 얻나요?</span>
@@ -200,12 +213,12 @@ html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Goth
       </div>
     </div>
     <div class="card">
-      <div class="card-title">⭐ 달성률별 조각 지급 기준</div>
+      <div class="card-title" id="rulesCardTitle">⭐ 달성률별 조각 지급 기준</div>
       <div id="ruleRows"></div>
       <button class="btn btn-ghost btn-sm" onclick="addRule()" style="margin-top:8px">+ 구간 추가</button>
     </div>
     <div class="card">
-      <div class="card-title">📋 체크리스트 활동 항목</div>
+      <div class="card-title" id="itemsCardTitle">📋 체크리스트 활동 항목</div>
       <div id="sectionEditor"></div>
     </div>
     <button class="btn-full btn-primary" onclick="saveSettings()">💾 저장하기!</button>
@@ -253,12 +266,41 @@ html,body{min-height:100%;background:#1a1fe8;font-family:'Nunito','Apple SD Goth
 
 <script>
 const API_BASE=''; // Worker를 Pages와 같은 프로젝트에 연결하면 그대로 두세요. 별도 Worker URL을 쓰면 여기에 입력하세요.
-function defaults(){return{totalPieces:50,rules:[{min:70,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:[
+function termSections(){return[
   {id:'morning',tab:'🌤 등교길',icon:'🌤',iconBg:'#FFF9E6',title:'등교길',sub:'학교 가기 전, 가는 길',items:['활동 1','활동 2','활동 3','활동 4']},
   {id:'school',tab:'🏫 학교',icon:'🏫',iconBg:'#E6F0FF',title:'학교 생활',sub:'수업, 쉬는 시간, 점심',items:['활동 1','활동 2','활동 3','활동 4','활동 5']},
   {id:'afternoon',tab:'🌇 하교길',icon:'🌇',iconBg:'#FFF0E6',title:'하교길',sub:'집으로 돌아오는 길',items:['활동 1','활동 2','활동 3']},
   {id:'home',tab:'🏠 집에서',icon:'🏠',iconBg:'#E6FFE6',title:'집에서',sub:'집에 온 후 저녁까지',items:['활동 1','활동 2','활동 3','활동 4','활동 5']}
-],students:[]}}
+]}
+function vacationSections(){return[
+  {id:'vacation',tab:'☀️ 방학 미션',icon:'☀️',iconBg:'#FFF9D9',title:'오늘의 방학 미션',sub:'10개 중 5개 이상 실천하면 미션 성공!',requiredCount:4,items:[
+    '10분 이상 책을 읽었어요.',
+    '밤 10시30분 이전에 자고 오전 9시 이전에 일어났어요.',
+    '양치질을 하루 3번 했어요.',
+    '세 끼 식사를 골고루 먹었어요.',
+    '20분 이상 운동했어요.',
+    '가족 일을 10분 이상 도와드렸어요.',
+    '이부자리를 스스로 정리했어요.',
+    '내 물건이나 방을 5분 이상 정리했어요.',
+    '방학 과제나 공부를 10분 이상 했어요.',
+    '그림 그리기, 만들기, 악기 연습 등 취미 활동을 20분 이상 했어요.'
+  ]}
+]}
+function defaults(){const ts=termSections(),vs=vacationSections();return{
+  mode:'term',totalPieces:50,
+  termConfig:{targetPct:70,rules:[{min:70,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:ts},
+  vacationConfig:{targetPct:50,rules:[{min:50,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:vs},
+  rules:ts&&[{min:70,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}],sections:ts,students:[]}}
+function applyModeConfig(){
+  const cfg=D.mode==='vacation'?D.vacationConfig:D.termConfig;
+  D.sections=cfg.sections;D.rules=cfg.rules;
+}
+function syncActiveConfig(){
+  const cfg=D.mode==='vacation'?D.vacationConfig:D.termConfig;
+  cfg.sections=D.sections;cfg.rules=D.rules;
+}
+function activeTargetPct(){return D.mode==='vacation'?(D.vacationConfig.targetPct||50):(D.termConfig.targetPct||70)}
+function modeLabel(){return D.mode==='vacation'?'방학 중':'학기 중'}
 let D=defaults();
 let isSaving=false;
 let needsPieceRepairSave=false;
@@ -282,14 +324,21 @@ function repairStudentPieces(s){
 function normalizeD(){
   const base=defaults();
   if(!D||typeof D!=='object')D=base;
-  if(!D.sections)D.sections=base.sections;if(!D.rules)D.rules=base.rules;if(!D.totalPieces)D.totalPieces=50;if(!D.students)D.students=[];
+  if(!D.mode)D.mode='term';
+  if(!D.termConfig)D.termConfig={targetPct:70,rules:Array.isArray(D.rules)&&D.rules.length?D.rules:base.termConfig.rules,sections:Array.isArray(D.sections)&&D.sections.length?D.sections:base.termConfig.sections};
+  if(!D.vacationConfig)D.vacationConfig=base.vacationConfig;
+  if(!D.termConfig.sections)D.termConfig.sections=base.termConfig.sections;if(!D.termConfig.rules)D.termConfig.rules=base.termConfig.rules;if(!D.termConfig.targetPct)D.termConfig.targetPct=70;
+  if(!D.vacationConfig.sections||!D.vacationConfig.sections.length)D.vacationConfig.sections=base.vacationConfig.sections;if(!D.vacationConfig.rules||!D.vacationConfig.rules.length)D.vacationConfig.rules=base.vacationConfig.rules;if(!D.vacationConfig.targetPct)D.vacationConfig.targetPct=50;
+  if(!D.totalPieces)D.totalPieces=50;if(!D.students)D.students=[];
+  applyModeConfig();
   D.students.forEach((s,i)=>{if(!s.id)s.id=i+1;if(!s.history)s.history=[];if(!s.snapshots)s.snapshots=[];if(!s.checks)s.checks={};if(s.colorIdx===undefined)s.colorIdx=i%8;if(s.pieces===undefined)s.pieces=0;if(s.stars===undefined)s.stars=0;repairStudentPieces(s);});
 }
 function todayLocalKey(){const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`;}
 function setServerStatus(msg){const el=document.getElementById('serverStatus');if(!el)return;if(msg){el.textContent=msg;el.classList.add('show');}else{el.textContent='';el.classList.remove('show');}}
 function shortErr(text){try{const j=JSON.parse(text);return j.fix||j.error||text}catch(_){return String(text).slice(0,160)}}
 async function apiFetch(path,options={}){
-  const res=await fetch(API_BASE+path,{headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
+  const url=(options.method&&options.method!=='GET')?API_BASE+path:API_BASE+path+(path.includes('?')?'&':'?')+'_='+Date.now();
+  const res=await fetch(url,{cache:'no-store',headers:{'Content-Type':'application/json','Cache-Control':'no-cache',...(options.headers||{})},...options});
   if(!res.ok){const t=await res.text();throw new Error(shortErr(t));}
   return res.json();
 }
@@ -299,6 +348,7 @@ async function loadRemote(){
 }
 let saveQueue=Promise.resolve();
 function saveD(){
+  syncActiveConfig();
   isSaving=true;
   saveQueue=saveQueue.then(()=>apiFetch('/api/data',{method:'POST',body:JSON.stringify({action:'saveState',state:D})}))
     .then(()=>setServerStatus(''))
@@ -456,7 +506,7 @@ function renderPastEditorHTML(s){
   const first=snaps[0].key;
   return `<div class="check-edit-title">🗓 과거 활동 기록 수정</div>
     <select id="past-select-${s.id}" onchange="renderPastDateEditor(${s.id},this.value)" style="width:100%;padding:7px 10px;border:2.5px solid var(--dark);border-radius:12px;font-size:13px;font-weight:900;font-family:inherit;background:#fffbe6;margin-bottom:8px">
-      ${snaps.map(sn=>`<option value="${esc(sn.key)}">${esc(sn.date||sn.key)} ${esc(sn.time||'')} · ${sn.pct??0}% (${sn.done??0}/${sn.total??0})</option>`).join('')}
+      ${snaps.map(sn=>`<option value="${esc(sn.key)}">${esc(sn.date||sn.key)} ${esc(sn.time||'')} · ${esc(sn.modeLabel||((sn.mode==='vacation')?'방학 중':'학기 중'))} · ${sn.pct??0}% (${sn.done??0}/${sn.total??0})</option>`).join('')}
     </select>
     <div id="past-detail-${s.id}">${renderPastSnapDetail(s,first)}</div>`;
 }
@@ -464,7 +514,7 @@ function renderPastDateEditor(id,key){const s=D.students.find(x=>x.id===id);cons
 function renderPastSnapDetail(s,key){
   const found=findSnap(s.id,key);if(!found)return `<div class="sm-info">기록을 찾을 수 없어요.</div>`;
   const snap=found.snap;normalizeSnap(snap);
-  return `<div class="sm-info" style="margin-bottom:8px">${esc(snap.date)} ${esc(snap.time)} · ${snap.pct}% (${snap.done}/${snap.total})</div>`+
+  return `<div class="sm-info" style="margin-bottom:8px">${esc(snap.date)} ${esc(snap.time)} · ${esc(snap.modeLabel||((snap.mode==='vacation')?'방학 중':'학기 중'))} · ${snap.pct}% (${snap.done}/${snap.total})</div>`+
     (snap.detail||[]).map((sec,si)=>`<div><div class="check-edit-title">${esc(sec.title)}</div>${(sec.items||[]).map((it,ii)=>`<label class="check-edit-item"><input type="checkbox" ${it.checked?'checked':''} onchange="setPastSnapItem(${s.id},'${esc(key)}',${si},${ii},this.checked)"><span>${esc(it.label)}</span></label>`).join('')}</div>`).join('')+
     `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn btn-green btn-sm" onclick="savePastSnapEdit(${s.id},'${esc(key)}')">과거 활동 저장</button><button class="btn btn-danger btn-sm" onclick="deletePastSnapManage(${s.id},'${esc(key)}')">이 기록 삭제</button></div>`;
 }
@@ -490,11 +540,36 @@ function addStarManual(id){changeStars(id,1)}
 async function resetStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 전체 기록을 초기화할까요?'))return;s.pieces=0;s.stars=0;s.history=[];s.snapshots=[];s.checks={};await saveStudentD(s);toast(s.name+' 초기화!','r');renderManage();renderOv();}
 function deleteStudent(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 학생을 명단에서 삭제할까요?'))return;D.students=D.students.filter(x=>x.id!==id);saveD();toast('학생이 삭제됐어요','r');renderManage();renderOv();}
 
-function renderSettings(){document.getElementById('setTotal').value=D.totalPieces;renderRuleRows();renderSectionEditor();}
+function renderSettings(){
+  document.getElementById('setTotal').value=D.totalPieces;applyModeConfig();
+  document.getElementById('modeTermBtn').classList.toggle('active',D.mode==='term');
+  document.getElementById('modeVacationBtn').classList.toggle('active',D.mode==='vacation');
+  document.getElementById('modeNote').innerHTML=D.mode==='vacation'?'현재 <b>방학 중 모드</b>입니다. 학생 화면은 장소 구분 없이 10개 활동을 한 화면에 보여주며, 50%부터 조각을 받을 수 있습니다. 조각과 별은 학기 중 기록에 이어 누적됩니다.':'현재 <b>학기 중 모드</b>입니다. 기존 등교길·학교·하교길·집에서 체크리스트와 70% 보상 기준을 사용합니다.';
+  document.getElementById('rulesCardTitle').textContent='⭐ '+modeLabel()+' 달성률별 조각 지급 기준';
+  document.getElementById('itemsCardTitle').textContent='📋 '+modeLabel()+' 체크리스트 활동 항목';
+  renderRuleRows();renderSectionEditor();
+}
+async function changeMode(mode){
+  if(D.mode===mode)return;
+  syncActiveConfig();
+  D.mode=mode;
+  applyModeConfig();
+  renderSettings();
+  toast((mode==='vacation'?'방학 중':'학기 중')+' 모드를 선택했어요. 아래 저장하기를 눌러 주세요!','y');
+}
 function renderRuleRows(){document.getElementById('ruleRows').innerHTML=D.rules.map((r,i)=>`<div class="rule-row"><input class="setting-input" type="number" value="${r.min}" onchange="D.rules[${i}].min=+this.value"/><span style="font-size:12px;font-weight:800;color:#aaa">~</span><input class="setting-input" type="number" value="${r.max}" onchange="D.rules[${i}].max=+this.value"/><span style="font-size:12px;font-weight:800;color:#aaa">%→</span><input class="setting-input" type="number" value="${r.pieces}" onchange="D.rules[${i}].pieces=+this.value"/><span style="font-size:12px;font-weight:800;color:#aaa">조각</span><button class="btn btn-danger btn-sm" onclick="D.rules.splice(${i},1);renderRuleRows()">×</button></div>`).join('')}
-function addRule(){D.rules.push({min:70,max:79,pieces:1});renderRuleRows();}
-function renderSectionEditor(){document.getElementById('sectionEditor').innerHTML=D.sections.map((sec,si)=>`<div class="sec-items-editor"><div class="sec-items-title">${sec.icon} ${sec.title}</div>${sec.items.map((item,ii)=>`<div class="item-row"><input class="item-input" value="${item}" onchange="D.sections[${si}].items[${ii}]=this.value"/><button class="btn btn-danger btn-sm" onclick="D.sections[${si}].items.splice(${ii},1);renderSectionEditor()">×</button></div>`).join('')}<button class="btn btn-ghost btn-sm" onclick="D.sections[${si}].items.push('새 활동');renderSectionEditor()">+ 활동 추가</button></div>`).join('')}
-function saveSettings(){D.totalPieces=+document.getElementById('setTotal').value;saveD();toast('저장됐어요! 💾','g');}
+function addRule(){D.rules.push({min:activeTargetPct(),max:100,pieces:1});renderRuleRows();}
+function renderSectionEditor(){document.getElementById('sectionEditor').innerHTML=D.sections.map((sec,si)=>`<div class="sec-items-editor"><div class="sec-items-title">${sec.icon} ${sec.title}</div>${sec.items.map((item,ii)=>`<div class="item-row"><input class="item-input" value="${esc(item)}" onchange="D.sections[${si}].items[${ii}]=this.value"/><button class="btn btn-danger btn-sm" onclick="D.sections[${si}].items.splice(${ii},1);renderSectionEditor()">×</button></div>`).join('')}<button class="btn btn-ghost btn-sm" onclick="D.sections[${si}].items.push('새 활동');renderSectionEditor()">+ 활동 추가</button></div>`).join('')}
+async function saveSettings(){
+  D.totalPieces=+document.getElementById('setTotal').value;
+  syncActiveConfig();
+  const selectedMode=D.mode;
+  await saveD();
+  await loadRemote();
+  renderSettings();renderOv();
+  if(D.mode===selectedMode)toast((D.mode==='vacation'?'방학 중':'학기 중')+' 모드로 저장됐어요! 💾','g');
+  else toast('운영 모드 저장을 확인하지 못했어요. 다시 저장해 주세요.','r');
+}
 
 function renderReset(){document.getElementById('indivReset').innerHTML=D.students.map(s=>{const cc=CC[s.colorIdx%8];return`<div class="indiv-row"><div class="s-dot" style="background:${cc.av};color:${cc.top};border-color:${cc.top}">${s.name.slice(0,2)}</div><span style="font-size:13px;font-weight:800;flex:1">${s.name}</span><span style="font-size:12px;font-weight:800;color:#aaa">별${s.stars}·조각${s.pieces}</span><button class="btn btn-danger btn-sm" onclick="resetStudentR(${s.id})">초기화</button></div>`;}).join('')}
 async function resetStudentR(id){const s=D.students.find(x=>x.id===id);if(!s||!confirm(s.name+' 초기화?'))return;s.pieces=0;s.stars=0;s.history=[];s.snapshots=[];s.checks={};await saveStudentD(s);toast(s.name+' 초기화!','r');renderReset();}

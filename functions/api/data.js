@@ -41,10 +41,21 @@ async function writeState(db, state) {
 
 function normalizeState(state) {
   if (!state || typeof state !== 'object') state = {};
+  if (!state.mode) state.mode = 'term';
   if (!Array.isArray(state.students)) state.students = [];
   if (!Array.isArray(state.sections)) state.sections = [];
   if (!Array.isArray(state.rules)) state.rules = [];
   if (!state.totalPieces) state.totalPieces = 50;
+  // 기존 버전과의 호환: 기존 sections/rules를 학기 중 설정으로 이전
+  if (!state.termConfig) state.termConfig = { targetPct: 70, sections: state.sections, rules: state.rules };
+  if (!state.vacationConfig) state.vacationConfig = { targetPct: 50, sections: [], rules: [{min:50,max:79,pieces:1},{min:80,max:99,pieces:2},{min:100,max:100,pieces:3}] };
+  if (!Array.isArray(state.termConfig.sections)) state.termConfig.sections = [];
+  if (!Array.isArray(state.termConfig.rules)) state.termConfig.rules = [];
+  if (!Array.isArray(state.vacationConfig.sections)) state.vacationConfig.sections = [];
+  if (!Array.isArray(state.vacationConfig.rules)) state.vacationConfig.rules = [];
+  const active = state.mode === 'vacation' ? state.vacationConfig : state.termConfig;
+  state.sections = active.sections;
+  state.rules = active.rules;
   state.students.forEach((s, i) => {
     if (!s.id) s.id = i + 1;
     if (!s.name) s.name = '학생' + (i + 1);
@@ -59,19 +70,25 @@ function normalizeState(state) {
 }
 
 function mergeOneStudent(baseState, incomingState, student) {
-  const base = normalizeState(baseState || incomingState || { students: [] });
-  const source = normalizeState(incomingState || base);
-
-  // 기존 상태가 아직 비어 있으면 클라이언트의 섹션·규칙·기본 명단을 우선 사용
-  if (!base.sections.length && source.sections.length) base.sections = source.sections;
-  if (!base.rules.length && source.rules.length) base.rules = source.rules;
-  if (!base.totalPieces && source.totalPieces) base.totalPieces = source.totalPieces;
-  if (!base.students.length && source.students.length) base.students = source.students;
+  // 학생 화면 저장은 학생 1명의 데이터만 바꿉니다.
+  // 운영 모드와 체크리스트 설정은 관리자 화면에서만 변경할 수 있습니다.
+  let base = baseState;
+  if (!base || typeof base !== 'object') {
+    base = incomingState && typeof incomingState === 'object'
+      ? incomingState
+      : { mode: 'term', students: [] };
+  }
+  base = normalizeState(base);
 
   const idx = base.students.findIndex(s => String(s.id) === String(student.id));
   const cleanStudent = normalizeState({ students: [student] }).students[0];
   if (idx >= 0) base.students[idx] = cleanStudent;
   else base.students.push(cleanStudent);
+
+  // 현재 서버의 운영 모드에 맞춰 활성 설정만 다시 맞춥니다.
+  const active = base.mode === 'vacation' ? base.vacationConfig : base.termConfig;
+  base.sections = active.sections;
+  base.rules = active.rules;
   return base;
 }
 
@@ -116,8 +133,9 @@ export async function onRequest(context) {
       if (!state || typeof state !== 'object' || !Array.isArray(state.students)) {
         return json({ ok: false, error: '잘못된 데이터 형식입니다. students 배열이 필요합니다.' }, 400);
       }
-      await writeState(env.DB, normalizeState(state));
-      return json({ ok: true });
+      const next = normalizeState(state);
+      await writeState(env.DB, next);
+      return json({ ok: true, state: next });
     }
 
     return json({ ok: false, error: 'Method Not Allowed' }, 405);
